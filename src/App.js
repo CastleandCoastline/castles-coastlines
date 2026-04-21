@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { Analytics } from "@vercel/analytics/react";
 
 // ── Supabase client ───────────────────────────────────────────────────────────
 const supabase = createClient(
@@ -326,7 +327,7 @@ const GuestView = ({ tour, onLogout }) => {
 
       {tour.days.length === 0 ? (
         <div style={{ padding: 40, textAlign: "center", color: "#405060" }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>🗓️</div>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>🗓��</div>
           <div>Your itinerary is being prepared. Check back soon!</div>
         </div>
       ) : (
@@ -780,6 +781,7 @@ export default function App() {
 
   return (
     <>
+      <Analytics />
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Lato:wght@300;400;600;700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }

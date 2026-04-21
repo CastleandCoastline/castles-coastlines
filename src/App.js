@@ -163,6 +163,7 @@ const LeafletMap = ({ attractions }) => {
     if (attractions.length > 1) {
       map.fitBounds(window.L.latLngBounds(attractions.map((a) => [a.lat, a.lng])), { padding: [30, 30] });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attractions]);
 
   useEffect(() => () => { if (mapInstanceRef.current) mapInstanceRef.current.remove(); }, []);

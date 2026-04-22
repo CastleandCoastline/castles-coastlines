@@ -184,6 +184,7 @@ const CoachSeatingPlan = ({ tour, guestName, isGuide }) => {
   const seats = tour.seats || [];
 
   const getSeat = (r, c) => seats.find((s) => s.row === r && s.col === c);
+  const isAisle = (c) => cols === 4 && c === 1; // gap between col 1 and 2
 
   return (
     <div style={{ padding: 24 }}>
@@ -214,25 +215,26 @@ const CoachSeatingPlan = ({ tour, guestName, isGuide }) => {
         <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "center" }}>
           {Array.from({ length: rows }).map((_, r) => (
             <div key={r} style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              {/* Row number */}
-              <div style={{ width: 20, fontSize: 10, color: "#405060", textAlign: "right", flexShrink: 0 }}>{r + 1}</div>
               {Array.from({ length: cols }).map((_, c) => {
+                const seatNum = r * cols + c + 1;
                 const seat = getSeat(r, c);
                 const occupied = seat?.guest_name;
-                const isMyeat = occupied && guestName && occupied.toLowerCase() === guestName.toLowerCase();
+                const isMySeat = occupied && guestName && occupied.toLowerCase() === guestName.toLowerCase();
                 return (
                   <div key={c} style={{ display: "flex", alignItems: "center" }}>
                     {/* Aisle gap */}
                     {cols === 4 && c === 2 && <div style={{ width: 20 }} />}
-                    <div title={occupied || "Available"}
-                      style={{ width: 44, height: 40, borderRadius: 8, background: isMyeat ? "#c9a96e" : occupied ? "#2a4a6b" : "#0d1520", border: `1px solid ${isMyeat ? "#c9a96e" : occupied ? "#3a6a9b" : "#ffffff15"}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "default", position: "relative", transition: "all 0.2s" }}>
-                      {isMyeat && <div style={{ fontSize: 14 }}>⭐</div>}
-                      {occupied && !isMyeat && (
+                    <div title={occupied ? `Seat ${seatNum} — ${occupied}` : `Seat ${seatNum} — Available`}
+                      style={{ width: 44, height: 46, borderRadius: 8, background: isMySeat ? "#c9a96e" : occupied ? "#2a4a6b" : "#0d1520", border: `1px solid ${isMySeat ? "#c9a96e" : occupied ? "#3a6a9b" : "#ffffff15"}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "default", transition: "all 0.2s", gap: 1 }}>
+                      {/* Seat number always visible at top */}
+                      <div style={{ fontSize: 9, color: isMySeat ? "#1a1a2e" : occupied ? "#6080a0" : "#304050", fontWeight: 700, lineHeight: 1 }}>{seatNum}</div>
+                      {isMySeat && <div style={{ fontSize: 13 }}>⭐</div>}
+                      {occupied && !isMySeat && (
                         <div style={{ fontSize: 9, color: "#8090a0", textAlign: "center", padding: "0 2px", lineHeight: 1.2, maxWidth: 42, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {occupied.split(" ")[0]}
                         </div>
                       )}
-                      {!occupied && <div style={{ fontSize: 10, color: "#304050" }}>○</div>}
+                      {!occupied && <div style={{ fontSize: 9, color: "#304050" }}>○</div>}
                     </div>
                   </div>
                 );
@@ -323,8 +325,8 @@ const SeatingEditor = ({ tour, onSave, onClose, saving }) => {
           </div>
           {Array.from({ length: rows }).map((_, r) => (
             <div key={r} style={{ display: "flex", gap: 4, alignItems: "center", marginBottom: 4, justifyContent: "center" }}>
-              <div style={{ width: 16, fontSize: 9, color: "#405060", textAlign: "right" }}>{r + 1}</div>
               {Array.from({ length: cols }).map((_, c) => {
+                const seatNum = r * cols + c + 1;
                 const key = `${r}-${c}`;
                 const name = seatData[key];
                 const isSelected = editing === key;
@@ -332,8 +334,11 @@ const SeatingEditor = ({ tour, onSave, onClose, saving }) => {
                   <div key={c} style={{ display: "flex" }}>
                     {cols === 4 && c === 2 && <div style={{ width: 12 }} />}
                     <div onClick={() => handleSeatClick(r, c)}
-                      style={{ width: 40, height: 34, borderRadius: 6, background: isSelected ? "#c9a96e30" : name ? "#2a4a6b" : "#1a2332", border: `1px solid ${isSelected ? "#c9a96e" : name ? "#3a6a9b" : "#ffffff15"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 9, color: name ? "#a0b0c0" : "#304050", textAlign: "center", padding: "0 2px", lineHeight: 1.2, overflow: "hidden" }}>
-                      {name ? name.split(" ")[0].slice(0, 6) : "○"}
+                      style={{ width: 40, height: 38, borderRadius: 6, background: isSelected ? "#c9a96e30" : name ? "#2a4a6b" : "#1a2332", border: `1px solid ${isSelected ? "#c9a96e" : name ? "#3a6a9b" : "#ffffff15"}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", gap: 1 }}>
+                      <div style={{ fontSize: 8, fontWeight: 700, color: isSelected ? "#c9a96e" : name ? "#6080a0" : "#304050" }}>{seatNum}</div>
+                      <div style={{ fontSize: 8, color: name ? "#a0b0c0" : "#304050", textAlign: "center", padding: "0 2px", lineHeight: 1.2, overflow: "hidden", maxWidth: 38, whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
+                        {name ? name.split(" ")[0].slice(0, 5) : "○"}
+                      </div>
                     </div>
                   </div>
                 );
@@ -346,7 +351,7 @@ const SeatingEditor = ({ tour, onSave, onClose, saving }) => {
         {editing && (
           <div style={{ background: "#0d1520", borderRadius: 12, padding: 14, marginBottom: 16, border: "1px solid #c9a96e30" }}>
             <div style={{ fontSize: 12, color: "#c9a96e", marginBottom: 8 }}>
-              Seat {Math.floor(editing.split("-")[0] * cols + parseInt(editing.split("-")[1]) + 1)} — Row {parseInt(editing.split("-")[0]) + 1}
+              Seat {parseInt(editing.split("-")[0]) * cols + parseInt(editing.split("-")[1]) + 1} — Row {parseInt(editing.split("-")[0]) + 1}
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <input value={nameInput} onChange={(e) => setNameInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSeatSave()} placeholder="Guest name"

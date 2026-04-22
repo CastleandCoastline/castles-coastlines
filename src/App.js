@@ -2,14 +2,13 @@
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 
-// ── Supabase client ───────────────────────────────────────────────────────────
 const supabase = createClient(
   "https://pukdpnkgsyewvbswoqyo.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1a2Rwbmtnc3lld3Zic3dvcXlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3NTkwNDQsImV4cCI6MjA5MjMzNTA0NH0.UskWETDFraGynpZ2oT039DYpxGu8EJrgUgFN0AQ3Q8o"
 );
 
-// ── Guide password ─────────────────────────────────────────────────────────────
 const GUIDE_PASSWORD = "GUIDE2024";
+const BUCKET = "tour-photos";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 async function loadAllTours() {
@@ -21,12 +20,34 @@ async function loadAllTours() {
   return tours.map((tour) => ({
     ...tour,
     days: (days || []).filter((d) => d.tour_id === tour.id).map((day) => ({
-      ...day,
-      day: day.day_number,
+      ...day, day: day.day_number,
       schedule: (scheduleItems || []).filter((s) => s.day_id === day.id).map((s) => ({ time: s.time, label: s.label, note: s.note })),
       attractions: (attractions || []).filter((a) => a.day_id === day.id).map((a) => ({ name: a.name, desc: a.description, lat: parseFloat(a.latitude), lng: parseFloat(a.longitude) })),
     })),
   }));
+}
+
+async function loadPhotos(tourId) {
+  const { data, error } = await supabase.from("photos").select("*").eq("tour_id", tourId).order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data || []).map((p) => ({
+    ...p,
+    url: supabase.storage.from(BUCKET).getPublicUrl(p.storage_path).data.publicUrl,
+  }));
+}
+
+async function uploadPhoto(tourId, file, caption, uploadedBy) {
+  const ext = file.name.split(".").pop();
+  const path = `${tourId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type });
+  if (upErr) throw upErr;
+  const { error: dbErr } = await supabase.from("photos").insert({ tour_id: tourId, storage_path: path, caption, uploaded_by: uploadedBy });
+  if (dbErr) throw dbErr;
+}
+
+async function deletePhoto(photo) {
+  await supabase.storage.from(BUCKET).remove([photo.storage_path]);
+  await supabase.from("photos").delete().eq("id", photo.id);
 }
 
 async function saveTourToDB(tour) {
@@ -47,13 +68,9 @@ async function saveDayToDB(tourId, day) {
   if (dayErr) throw dayErr;
   const dayId = dayRow.id;
   await supabase.from("schedule_items").delete().eq("day_id", dayId);
-  if (day.schedule.length > 0) {
-    await supabase.from("schedule_items").insert(day.schedule.map((s, i) => ({ day_id: dayId, time: s.time, label: s.label, note: s.note, sort_order: i })));
-  }
+  if (day.schedule.length > 0) await supabase.from("schedule_items").insert(day.schedule.map((s, i) => ({ day_id: dayId, time: s.time, label: s.label, note: s.note, sort_order: i })));
   await supabase.from("attractions").delete().eq("day_id", dayId);
-  if (day.attractions.length > 0) {
-    await supabase.from("attractions").insert(day.attractions.map((a, i) => ({ day_id: dayId, name: a.name, description: a.desc, latitude: a.lat, longitude: a.lng, sort_order: i })));
-  }
+  if (day.attractions.length > 0) await supabase.from("attractions").insert(day.attractions.map((a, i) => ({ day_id: dayId, name: a.name, description: a.desc, latitude: a.lat, longitude: a.lng, sort_order: i })));
   return dayId;
 }
 
@@ -88,9 +105,8 @@ const QRModal = ({ tour, appUrl, onClose }) => {
   const [qrReady, setQrReady] = useState(false);
   const guestUrl = `${appUrl}?tour=${tour.id}`;
   useEffect(() => {
-    if (!window.QRCode) {
-      const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"; s.onload = () => setQrReady(true); document.head.appendChild(s);
-    } else setQrReady(true);
+    if (!window.QRCode) { const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"; s.onload = () => setQrReady(true); document.head.appendChild(s); }
+    else setQrReady(true);
   }, []);
   useEffect(() => {
     if (!qrReady || !canvasRef.current) return;
@@ -110,25 +126,193 @@ const QRModal = ({ tour, appUrl, onClose }) => {
           <div style={{ fontSize: 28, fontWeight: 700, color: "#f0e6d3", letterSpacing: 4, fontFamily: "monospace" }}>{tour.password}</div>
           <div style={{ fontSize: 12, color: "#506070", marginTop: 4 }}>Guests enter this after scanning</div>
         </div>
-        <div style={{ background: "#0d1520", borderRadius: 10, padding: "10px 14px", marginBottom: 20, textAlign: "left" }}>
-          <div style={{ fontSize: 12, color: "#607080", lineHeight: 1.7 }}>
-            <div>📱 <strong style={{ color: "#a0b0c0" }}>Scan</strong> the QR with your phone camera</div>
-            <div>🔑 <strong style={{ color: "#a0b0c0" }}>Enter</strong> the access code above</div>
-            <div>🏰 <strong style={{ color: "#a0b0c0" }}>View</strong> your full tour itinerary</div>
-            <div style={{ marginTop: 6, borderTop: "1px solid #ffffff10", paddingTop: 6 }}>📲 <strong style={{ color: "#a0b0c0" }}>Add to Home Screen</strong> for app-like access</div>
-          </div>
-        </div>
         <button onClick={onClose} style={{ width: "100%", padding: "12px", background: "linear-gradient(135deg,#c9a96e,#a07840)", borderRadius: 12, border: "none", color: "#1a1a2e", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>Done</button>
       </div>
     </div>
   );
 };
 
+// ── Photo Lightbox ────────────────────────────────────────────────────────────
+const Lightbox = ({ photo, onClose, onDelete, isGuide }) => (
+  <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "#000000ee", zIndex: 2000, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 20 }}>
+    <button onClick={onClose} style={{ position: "absolute", top: 20, right: 20, background: "none", border: "none", color: "#ffffff80", fontSize: 32, cursor: "pointer" }}>×</button>
+    <img src={photo.url} alt={photo.caption} onClick={(e) => e.stopPropagation()}
+      style={{ maxWidth: "100%", maxHeight: "70vh", borderRadius: 12, objectFit: "contain" }} />
+    <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 16, textAlign: "center", maxWidth: 340 }}>
+      {photo.caption && <div style={{ color: "#f0e6d3", fontSize: 15, fontWeight: 500, marginBottom: 6 }}>{photo.caption}</div>}
+      <div style={{ color: "#607080", fontSize: 12 }}>📷 {photo.uploaded_by} · {new Date(photo.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</div>
+      {isGuide && (
+        <button onClick={() => { onDelete(photo); onClose(); }}
+          style={{ marginTop: 14, padding: "8px 20px", background: "#ff444420", border: "1px solid #ff444440", borderRadius: 10, color: "#ff6666", fontSize: 13, cursor: "pointer" }}>
+          Delete Photo
+        </button>
+      )}
+    </div>
+  </div>
+);
+
+// ── Upload Modal ──────────────────────────────────────────────────────────────
+const UploadModal = ({ tourId, onUploaded, onClose }) => {
+  const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [caption, setCaption] = useState("");
+  const [name, setName] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+  const fileRef = useRef(null);
+
+  const handleFile = (f) => {
+    if (!f) return;
+    if (f.size > 10 * 1024 * 1024) { setError("Photo must be under 10MB"); return; }
+    setFile(f);
+    setPreview(URL.createObjectURL(f));
+    setError("");
+  };
+
+  const handleUpload = async () => {
+    if (!file) { setError("Please choose a photo first"); return; }
+    if (!name.trim()) { setError("Please enter your name"); return; }
+    setUploading(true);
+    try {
+      await uploadPhoto(tourId, file, caption.trim(), name.trim());
+      onUploaded();
+      onClose();
+    } catch (e) {
+      setError("Upload failed — please try again. Make sure the photo storage bucket is set up in Supabase.");
+    }
+    setUploading(false);
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 1000, overflowY: "auto", padding: "20px 16px" }}>
+      <div style={{ background: "#1a2332", borderRadius: 20, padding: 24, maxWidth: 480, margin: "0 auto", border: "1px solid #c9a96e30" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, color: "#f0e6d3" }}>Add a Photo</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#607080", fontSize: 22, cursor: "pointer" }}>×</button>
+        </div>
+
+        {/* File picker */}
+        <div onClick={() => fileRef.current?.click()}
+          style={{ border: `2px dashed ${preview ? "#c9a96e" : "#ffffff20"}`, borderRadius: 14, padding: preview ? 0 : "32px 20px", textAlign: "center", cursor: "pointer", marginBottom: 16, overflow: "hidden", position: "relative" }}>
+          {preview ? (
+            <img src={preview} alt="preview" style={{ width: "100%", maxHeight: 240, objectFit: "cover", display: "block" }} />
+          ) : (
+            <>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>📷</div>
+              <div style={{ color: "#c9a96e", fontSize: 14, fontWeight: 600 }}>Tap to choose a photo</div>
+              <div style={{ color: "#506070", fontSize: 12, marginTop: 4 }}>JPG, PNG or HEIC · Max 10MB</div>
+            </>
+          )}
+          <input ref={fileRef} type="file" accept="image/*" onChange={(e) => handleFile(e.target.files[0])} style={{ display: "none" }} />
+        </div>
+        {preview && (
+          <button onClick={() => { setFile(null); setPreview(null); }} style={{ width: "100%", padding: "7px", background: "transparent", border: "1px solid #ffffff15", borderRadius: 8, color: "#607080", fontSize: 12, cursor: "pointer", marginBottom: 14 }}>Choose different photo</button>
+        )}
+
+        {/* Your name */}
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ fontSize: 11, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Your Name</label>
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sarah" maxLength={40}
+            style={{ width: "100%", background: "#0d1520", border: "1px solid #ffffff20", borderRadius: 8, padding: "10px 12px", color: "#f0e6d3", fontSize: 14, outline: "none" }} />
+        </div>
+
+        {/* Caption */}
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ fontSize: 11, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Caption <span style={{ color: "#506070", textTransform: "none", letterSpacing: 0 }}>(optional)</span></label>
+          <input value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="e.g. Sunrise over Loch Lomond" maxLength={120}
+            style={{ width: "100%", background: "#0d1520", border: "1px solid #ffffff20", borderRadius: 8, padding: "10px 12px", color: "#f0e6d3", fontSize: 14, outline: "none" }} />
+        </div>
+
+        {error && <div style={{ color: "#ff6666", fontSize: 13, marginBottom: 12, textAlign: "center" }}>{error}</div>}
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: "12px", background: "transparent", border: "1px solid #ffffff20", borderRadius: 12, color: "#8090a0", fontSize: 14, cursor: "pointer" }}>Cancel</button>
+          <button onClick={handleUpload} disabled={uploading}
+            style={{ flex: 2, padding: "12px", background: uploading ? "#806040" : "linear-gradient(135deg,#c9a96e,#a07840)", borderRadius: 12, border: "none", color: "#1a1a2e", fontWeight: 700, fontSize: 14, cursor: uploading ? "default" : "pointer" }}>
+            {uploading ? "Uploading…" : "Share Photo 📷"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Photo Library Page ────────────────────────────────────────────────────────
+const PhotoLibrary = ({ tour, isGuide }) => {
+  const [photos, setPhotos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showUpload, setShowUpload] = useState(false);
+  const [lightbox, setLightbox] = useState(null);
+
+  const fetchPhotos = async () => {
+    setLoading(true);
+    try { setPhotos(await loadPhotos(tour.id)); }
+    catch (e) { console.error(e); }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchPhotos(); }, [tour.id]);
+
+  const handleDelete = async (photo) => {
+    if (!window.confirm("Delete this photo?")) return;
+    try { await deletePhoto(photo); fetchPhotos(); }
+    catch (e) { alert("Failed to delete photo"); }
+  };
+
+  return (
+    <div style={{ padding: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+        <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700 }}>Tour Photos</div>
+        <button onClick={() => setShowUpload(true)}
+          style={{ background: "linear-gradient(135deg,#c9a96e,#a07840)", border: "none", borderRadius: 10, padding: "8px 14px", color: "#1a1a2e", fontWeight: 700, fontSize: 13, cursor: "pointer", flexShrink: 0 }}>
+          + Add Photo
+        </button>
+      </div>
+      <div style={{ color: "#7080a0", fontSize: 13, marginBottom: 24 }}>Shared memories from everyone on the tour</div>
+
+      {loading ? (
+        <div style={{ textAlign: "center", padding: "40px 0", color: "#405060" }}>
+          <div style={{ fontSize: 32, marginBottom: 10 }}>📷</div>
+          <div>Loading photos…</div>
+        </div>
+      ) : photos.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "40px 20px", color: "#405060", border: "1px dashed #ffffff15", borderRadius: 16 }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>📸</div>
+          <div style={{ marginBottom: 16 }}>No photos yet — be the first to share one!</div>
+          <button onClick={() => setShowUpload(true)}
+            style={{ background: "linear-gradient(135deg,#c9a96e,#a07840)", border: "none", borderRadius: 10, padding: "10px 20px", color: "#1a1a2e", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+            Add First Photo
+          </button>
+        </div>
+      ) : (
+        <>
+          <div style={{ fontSize: 12, color: "#506070", marginBottom: 14 }}>{photos.length} photo{photos.length !== 1 ? "s" : ""} shared</div>
+          {/* Grid */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            {photos.map((photo) => (
+              <div key={photo.id} onClick={() => setLightbox(photo)}
+                style={{ borderRadius: 12, overflow: "hidden", cursor: "pointer", background: "#1a2332", border: "1px solid #ffffff10", position: "relative" }}>
+                <img src={photo.url} alt={photo.caption}
+                  style={{ width: "100%", aspectRatio: "1", objectFit: "cover", display: "block" }} />
+                <div style={{ padding: "8px 10px" }}>
+                  {photo.caption && <div style={{ color: "#d0c0b0", fontSize: 12, fontWeight: 500, marginBottom: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{photo.caption}</div>}
+                  <div style={{ color: "#506070", fontSize: 11 }}>📷 {photo.uploaded_by}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {showUpload && <UploadModal tourId={tour.id} onUploaded={fetchPhotos} onClose={() => setShowUpload(false)} />}
+      {lightbox && <Lightbox photo={lightbox} onClose={() => setLightbox(null)} onDelete={handleDelete} isGuide={isGuide} />}
+    </div>
+  );
+};
+
 // ── Guest Login ───────────────────────────────────────────────────────────────
 const GuestLogin = ({ tours, onUnlock, onGuideLogin }) => {
-  const [code, setCode] = useState("");
-  const [error, setError] = useState("");
-  const [shake, setShake] = useState(false);
+  const [code, setCode] = useState(""); const [error, setError] = useState(""); const [shake, setShake] = useState(false);
   const tryUnlock = () => {
     if (code.trim().toUpperCase() === GUIDE_PASSWORD) { onGuideLogin(); return; }
     const match = tours.find((t) => t.password.toUpperCase() === code.trim().toUpperCase());
@@ -138,7 +322,7 @@ const GuestLogin = ({ tours, onUnlock, onGuideLogin }) => {
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(160deg,#0d1520 0%,#1a2332 60%,#0d1520 100%)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, fontFamily: "'Lato',sans-serif" }}>
       <div style={{ fontSize: 52, marginBottom: 16 }}>🏰</div>
-      <div style={{ fontSize: 11, letterSpacing: 4, color: "#c9a96e", textTransform: "uppercase", marginBottom: 8 }}>Castle & Coastline</div>
+      <div style={{ fontSize: 11, letterSpacing: 4, color: "#c9a96e", textTransform: "uppercase", marginBottom: 8 }}>Castles & Coastlines</div>
       <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 28, color: "#f0e6d3", textAlign: "center", marginBottom: 8 }}>Welcome</div>
       <div style={{ color: "#607080", fontSize: 14, textAlign: "center", marginBottom: 40, maxWidth: 280, lineHeight: 1.6 }}>Enter the access code provided by your tour guide to view your itinerary</div>
       <div style={{ width: "100%", maxWidth: 320 }}>
@@ -172,6 +356,7 @@ const AnnouncementBanner = ({ text }) => {
 const GuestNav = ({ active, onChange }) => {
   const tabs = [
     { id: "itinerary", icon: "🗓️", label: "Itinerary" },
+    { id: "photos", icon: "📸", label: "Photos" },
     { id: "notes", icon: "📝", label: "Notes" },
     { id: "contact", icon: "📞", label: "Contact" },
   ];
@@ -179,16 +364,16 @@ const GuestNav = ({ active, onChange }) => {
     <div style={{ display: "flex", borderTop: "1px solid #ffffff10", background: "#0d1520", position: "sticky", bottom: 0 }}>
       {tabs.map((tab) => (
         <button key={tab.id} onClick={() => onChange(tab.id)}
-          style={{ flex: 1, padding: "12px 4px 10px", background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, borderTop: `2px solid ${active === tab.id ? "#c9a96e" : "transparent"}` }}>
-          <span style={{ fontSize: 20 }}>{tab.icon}</span>
-          <span style={{ fontSize: 10, color: active === tab.id ? "#c9a96e" : "#506070", fontFamily: "'Lato',sans-serif", letterSpacing: 0.5, fontWeight: active === tab.id ? 700 : 400 }}>{tab.label}</span>
+          style={{ flex: 1, padding: "10px 2px 8px", background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, borderTop: `2px solid ${active === tab.id ? "#c9a96e" : "transparent"}` }}>
+          <span style={{ fontSize: 18 }}>{tab.icon}</span>
+          <span style={{ fontSize: 9, color: active === tab.id ? "#c9a96e" : "#506070", fontFamily: "'Lato',sans-serif", letterSpacing: 0.5, fontWeight: active === tab.id ? 700 : 400 }}>{tab.label}</span>
         </button>
       ))}
     </div>
   );
 };
 
-// ── Guest Contact Page ────────────────────────────────────────────────────────
+// ── Contact Page ──────────────────────────────────────────────────────────────
 const ContactPage = ({ tour }) => {
   const hasContact = tour.guide_name || tour.guide_phone || tour.guide_email;
   return (
@@ -197,13 +382,12 @@ const ContactPage = ({ tour }) => {
       <div style={{ color: "#7080a0", fontSize: 13, marginBottom: 24 }}>Get in touch any time</div>
       {!hasContact ? (
         <div style={{ textAlign: "center", padding: "40px 20px", color: "#405060", border: "1px dashed #ffffff15", borderRadius: 16 }}>
-          <div style={{ fontSize: 36, marginBottom: 10 }}>📞</div>
-          <div>Contact details coming soon</div>
+          <div style={{ fontSize: 36, marginBottom: 10 }}>📞</div><div>Contact details coming soon</div>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {tour.guide_name && (
-            <div style={{ background: "#1a2332", borderRadius: 16, padding: "20px", border: "1px solid #c9a96e20", display: "flex", alignItems: "center", gap: 16 }}>
+            <div style={{ background: "#1a2332", borderRadius: 16, padding: 20, border: "1px solid #c9a96e20", display: "flex", alignItems: "center", gap: 16 }}>
               <div style={{ width: 52, height: 52, borderRadius: "50%", background: "linear-gradient(135deg,#c9a96e,#a07840)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>🧭</div>
               <div>
                 <div style={{ fontSize: 11, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", marginBottom: 3 }}>Your Tour Guide</div>
@@ -214,33 +398,24 @@ const ContactPage = ({ tour }) => {
           {tour.guide_phone && (
             <a href={`tel:${tour.guide_phone}`} style={{ background: "#1a2332", borderRadius: 16, padding: "18px 20px", border: "1px solid #ffffff10", display: "flex", alignItems: "center", gap: 14, textDecoration: "none" }}>
               <div style={{ width: 44, height: 44, borderRadius: 12, background: "#c9a96e20", border: "1px solid #c9a96e40", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>📱</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 11, color: "#607080", letterSpacing: 1, textTransform: "uppercase", marginBottom: 2 }}>Phone</div>
-                <div style={{ fontSize: 17, fontWeight: 600, color: "#f0e6d3" }}>{tour.guide_phone}</div>
-              </div>
+              <div style={{ flex: 1 }}><div style={{ fontSize: 11, color: "#607080", letterSpacing: 1, textTransform: "uppercase", marginBottom: 2 }}>Phone</div><div style={{ fontSize: 17, fontWeight: 600, color: "#f0e6d3" }}>{tour.guide_phone}</div></div>
               <div style={{ background: "linear-gradient(135deg,#c9a96e,#a07840)", borderRadius: 10, padding: "7px 14px", color: "#1a1a2e", fontWeight: 700, fontSize: 13 }}>Call</div>
             </a>
           )}
           {tour.guide_email && (
             <a href={`mailto:${tour.guide_email}`} style={{ background: "#1a2332", borderRadius: 16, padding: "18px 20px", border: "1px solid #ffffff10", display: "flex", alignItems: "center", gap: 14, textDecoration: "none" }}>
               <div style={{ width: 44, height: 44, borderRadius: 12, background: "#c9a96e20", border: "1px solid #c9a96e40", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>✉️</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 11, color: "#607080", letterSpacing: 1, textTransform: "uppercase", marginBottom: 2 }}>Email</div>
-                <div style={{ fontSize: 15, fontWeight: 600, color: "#f0e6d3" }}>{tour.guide_email}</div>
-              </div>
+              <div style={{ flex: 1 }}><div style={{ fontSize: 11, color: "#607080", letterSpacing: 1, textTransform: "uppercase", marginBottom: 2 }}>Email</div><div style={{ fontSize: 15, fontWeight: 600, color: "#f0e6d3" }}>{tour.guide_email}</div></div>
               <div style={{ background: "#c9a96e20", border: "1px solid #c9a96e40", borderRadius: 10, padding: "7px 14px", color: "#c9a96e", fontWeight: 700, fontSize: 13 }}>Email</div>
             </a>
           )}
-          <div style={{ background: "#1a2332", borderRadius: 14, padding: "14px 18px", border: "1px solid #ffffff10", marginTop: 4 }}>
-            <div style={{ fontSize: 12, color: "#506070", lineHeight: 1.7, textAlign: "center" }}>Don't hesitate to get in touch — your guide is here to help make your tour unforgettable 🏰</div>
-          </div>
         </div>
       )}
     </div>
   );
 };
 
-// ── Guest Notes Page ──────────────────────────────────────────────────────────
+// ── Notes Page ────────────────────────────────────────────────────────────────
 const NotesPage = ({ tour }) => {
   const notes = tour.notes || "";
   const paragraphs = notes.split("\n").filter((p) => p.trim());
@@ -250,8 +425,7 @@ const NotesPage = ({ tour }) => {
       <div style={{ color: "#7080a0", fontSize: 13, marginBottom: 24 }}>Tips, recommendations & important info from your guide</div>
       {!notes ? (
         <div style={{ textAlign: "center", padding: "40px 20px", color: "#405060", border: "1px dashed #ffffff15", borderRadius: 16 }}>
-          <div style={{ fontSize: 36, marginBottom: 10 }}>📝</div>
-          <div>Your guide hasn't added any notes yet — check back soon!</div>
+          <div style={{ fontSize: 36, marginBottom: 10 }}>📝</div><div>Your guide hasn't added any notes yet — check back soon!</div>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -268,7 +442,7 @@ const NotesPage = ({ tour }) => {
 };
 
 // ── Guest View ────────────────────────────────────────────────────────────────
-const GuestView = ({ tour, onLogout }) => {
+const GuestView = ({ tour, onLogout, isGuide }) => {
   const [activeDay, setActiveDay] = useState(0);
   const [activePage, setActivePage] = useState("itinerary");
   const day = tour.days[activeDay];
@@ -277,26 +451,21 @@ const GuestView = ({ tour, onLogout }) => {
       <AnnouncementBanner text={tour.announcement} />
       <div style={{ background: "linear-gradient(180deg,#0a0f1a 0%,transparent 100%)", padding: "20px 24px 14px", borderBottom: "1px solid #ffffff10" }}>
         <button onClick={onLogout} style={{ background: "none", border: "none", color: "#506070", cursor: "pointer", fontSize: 12, marginBottom: 8, padding: 0 }}>← Change tour</button>
-        <div style={{ fontSize: 11, letterSpacing: 3, color: "#c9a96e", textTransform: "uppercase", marginBottom: 3 }}>Castle & Coastline</div>
-        <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, lineHeight: 1.2 }}>{tour.name}</div>
+        <div style={{ fontSize: 11, letterSpacing: 3, color: "#c9a96e", textTransform: "uppercase", marginBottom: 3 }}>Castles & Coastlines</div>
+        <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700 }}>{tour.name}</div>
         <div style={{ color: "#8090a0", fontSize: 12, marginTop: 3 }}>{tour.duration}-day tour</div>
       </div>
       <div style={{ flex: 1, overflowY: "auto" }}>
         {activePage === "itinerary" && (
           <>
             {tour.days.length === 0 ? (
-              <div style={{ padding: 40, textAlign: "center", color: "#405060" }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>🗓️</div>
-                <div>Your itinerary is being prepared. Check back soon!</div>
-              </div>
+              <div style={{ padding: 40, textAlign: "center", color: "#405060" }}><div style={{ fontSize: 40, marginBottom: 12 }}>🗓️</div><div>Your itinerary is being prepared. Check back soon!</div></div>
             ) : (
               <>
                 <div style={{ overflowX: "auto", padding: "12px 20px", display: "flex", gap: 8, borderBottom: "1px solid #ffffff10" }}>
-                  {tour.days.map((d, i) => (
-                    <button key={i} onClick={() => setActiveDay(i)} style={{ flexShrink: 0, padding: "7px 14px", borderRadius: 20, border: `1px solid ${activeDay === i ? "#c9a96e" : "#ffffff20"}`, background: activeDay === i ? "#c9a96e" : "transparent", color: activeDay === i ? "#1a1a2e" : "#a0b0c0", fontWeight: activeDay === i ? 700 : 400, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>Day {d.day}</button>
-                  ))}
+                  {tour.days.map((d, i) => (<button key={i} onClick={() => setActiveDay(i)} style={{ flexShrink: 0, padding: "7px 14px", borderRadius: 20, border: `1px solid ${activeDay === i ? "#c9a96e" : "#ffffff20"}`, background: activeDay === i ? "#c9a96e" : "transparent", color: activeDay === i ? "#1a1a2e" : "#a0b0c0", fontWeight: activeDay === i ? 700 : 400, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>Day {d.day}</button>))}
                 </div>
-                <div style={{ padding: "24px" }}>
+                <div style={{ padding: 24 }}>
                   <div style={{ fontSize: 11, letterSpacing: 2, color: "#c9a96e", textTransform: "uppercase", marginBottom: 4 }}>Day {day.day}</div>
                   <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, marginBottom: 4 }}>{day.title}</div>
                   <div style={{ color: "#7080a0", fontSize: 13, marginBottom: 24 }}>📍 {day.location}</div>
@@ -325,10 +494,7 @@ const GuestView = ({ tour, onLogout }) => {
                           <a key={i} href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a.name + " " + day.location)}`} target="_blank" rel="noopener noreferrer"
                             style={{ background: "#1a2332", border: "1px solid #ffffff10", borderRadius: 10, padding: "12px 14px", display: "flex", alignItems: "center", gap: 12, textDecoration: "none" }}>
                             <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#c9a96e", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#1a1a2e", flexShrink: 0 }}>{i + 1}</div>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ color: "#f0e6d3", fontWeight: 600, fontSize: 14 }}>{a.name}</div>
-                              <div style={{ color: "#607080", fontSize: 12, marginTop: 2 }}>{a.desc}</div>
-                            </div>
+                            <div style={{ flex: 1 }}><div style={{ color: "#f0e6d3", fontWeight: 600, fontSize: 14 }}>{a.name}</div><div style={{ color: "#607080", fontSize: 12, marginTop: 2 }}>{a.desc}</div></div>
                             <span style={{ color: "#c9a96e", fontSize: 18 }}>↗</span>
                           </a>
                         ))}
@@ -340,6 +506,7 @@ const GuestView = ({ tour, onLogout }) => {
             )}
           </>
         )}
+        {activePage === "photos" && <PhotoLibrary tour={tour} isGuide={isGuide} />}
         {activePage === "notes" && <NotesPage tour={tour} />}
         {activePage === "contact" && <ContactPage tour={tour} />}
       </div>
@@ -423,7 +590,6 @@ const AddTourModal = ({ onSave, onClose, saving }) => {
           <label style={{ fontSize: 11, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase" }}>Description</label>
           <textarea value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Brief description..." style={{ background: "#0d1520", border: "1px solid #ffffff20", borderRadius: 8, padding: "10px 12px", color: "#f0e6d3", fontSize: 14, width: "100%", outline: "none", resize: "vertical", minHeight: 70, fontFamily: "'Lato',sans-serif" }} />
           <label style={{ fontSize: 11, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase" }}>Guest Access Code</label>{inp(password, (v) => setPassword(v.toUpperCase()), "e.g. SCOTLAND24")}
-          <div style={{ fontSize: 12, color: "#506070" }}>Guests enter this code to access this tour only.</div>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={onClose} style={{ flex: 1, padding: "12px", background: "transparent", border: "1px solid #ffffff20", borderRadius: 12, color: "#8090a0", fontSize: 14, cursor: "pointer" }}>Cancel</button>
@@ -455,10 +621,9 @@ const TourSettingsModal = ({ tour, onSave, onClose, saving }) => {
         {inp("Phone Number", t.guide_phone, (v) => setT({ ...t, guide_phone: v }), "e.g. +44 7700 900000", "tel")}
         {inp("Email Address", t.guide_email, (v) => setT({ ...t, guide_email: v }), "e.g. james@castlescoastlines.com", "email")}
         <div style={{ fontSize: 13, color: "#c9a96e", fontFamily: "'Playfair Display',serif", marginBottom: 6, marginTop: 6 }}>Tour Notes for Guests</div>
-        <div style={{ fontSize: 12, color: "#506070", marginBottom: 10 }}>Each line becomes a separate note card for guests — tips, recommendations, wifi passwords, anything useful.</div>
-        <textarea value={t.notes} onChange={(e) => setT({ ...t, notes: e.target.value })}
-          placeholder={"Best fish and chips in St Andrews: The Tailend Restaurant\nBring waterproof shoes for the Glencoe walk\nHotel wifi password: highland2024"}
-          style={{ width: "100%", background: "#0d1520", border: "1px solid #ffffff20", borderRadius: 10, padding: "12px", color: "#f0e6d3", fontSize: 14, resize: "vertical", minHeight: 140, outline: "none", fontFamily: "'Lato',sans-serif", lineHeight: 1.7, marginBottom: 20 }} />
+        <div style={{ fontSize: 12, color: "#506070", marginBottom: 10 }}>Each line becomes a separate note card. Tips, recommendations, wifi passwords — anything useful.</div>
+        <textarea value={t.notes} onChange={(e) => setT({ ...t, notes: e.target.value })} placeholder={"Best fish and chips in St Andrews: The Tailend\nBring waterproof shoes for Glencoe\nHotel wifi: highland2024"}
+          style={{ width: "100%", background: "#0d1520", border: "1px solid #ffffff20", borderRadius: 10, padding: "12px", color: "#f0e6d3", fontSize: 14, resize: "vertical", minHeight: 120, outline: "none", fontFamily: "'Lato',sans-serif", lineHeight: 1.7, marginBottom: 20 }} />
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={onClose} style={{ flex: 1, padding: "12px", background: "transparent", border: "1px solid #ffffff20", borderRadius: 12, color: "#8090a0", fontSize: 14, cursor: "pointer" }}>Cancel</button>
           <button onClick={() => onSave(t)} disabled={saving} style={{ flex: 2, padding: "12px", background: saving ? "#806040" : "linear-gradient(135deg,#c9a96e,#a07840)", borderRadius: 12, border: "none", color: "#1a1a2e", fontWeight: 700, fontSize: 14, cursor: saving ? "default" : "pointer" }}>{saving ? "Saving…" : "Save Settings"}</button>
@@ -469,7 +634,7 @@ const TourSettingsModal = ({ tour, onSave, onClose, saving }) => {
 };
 
 // ── Guide Dashboard ───────────────────────────────────────────────────────────
-const GuideDashboard = ({ tours, onLogout, onRefresh }) => {
+const GuideDashboard = ({ tours, onLogout, onRefresh, onViewTour }) => {
   const [activeTourId, setActiveTourId] = useState(tours[0]?.id || null);
   const [editingDay, setEditingDay] = useState(null);
   const [showAddTour, setShowAddTour] = useState(false);
@@ -488,62 +653,15 @@ const GuideDashboard = ({ tours, onLogout, onRefresh }) => {
   }, [activeTourId]);
 
   const showStatus = (msg) => { setStatusMsg(msg); setTimeout(() => setStatusMsg(""), 3000); };
-
-  const saveDay = async (updatedDay) => {
-    setSaving(true);
-    try { await saveDayToDB(tour.id, updatedDay); await onRefresh(); setEditingDay(null); showStatus("✓ Day saved"); }
-    catch (e) { showStatus("❌ Save failed — check connection"); }
-    setSaving(false);
-  };
-
-  const addDay = () => {
-    const nextDay = tour.days.length > 0 ? Math.max(...tour.days.map((d) => d.day)) + 1 : 1;
-    setEditingDay({ day: nextDay, title: `Day ${nextDay}`, location: "", schedule: [], attractions: [] });
-  };
-
-  const deleteDay = async (day) => {
-    if (!window.confirm(`Delete Day ${day.day}: ${day.title}?`)) return;
-    setSaving(true);
-    try { if (day.id) await deleteDayFromDB(day.id); await onRefresh(); showStatus("✓ Day deleted"); }
-    catch (e) { showStatus("❌ Delete failed"); }
-    setSaving(false);
-  };
-
-  const addTour = async (t) => {
-    setSaving(true);
-    try { await saveTourToDB(t); await onRefresh(); setActiveTourId(t.id); setShowAddTour(false); showStatus("✓ Tour created"); }
-    catch (e) { showStatus("❌ Failed to create tour"); }
-    setSaving(false);
-  };
-
-  const saveSettings = async (settings) => {
-    setSaving(true);
-    try {
-      await supabase.from("tours").update({ notes: settings.notes, guide_name: settings.guide_name, guide_phone: settings.guide_phone, guide_email: settings.guide_email }).eq("id", tour.id);
-      await onRefresh(); setShowSettings(false); showStatus("✓ Settings saved");
-    } catch (e) { showStatus("❌ Failed to save settings"); }
-    setSaving(false);
-  };
-
-  const saveAnnouncement = async () => {
-    try { await supabase.from("tours").update({ announcement: announcementDraft }).eq("id", tour.id); await onRefresh(); setAnnouncementSaved(true); setTimeout(() => setAnnouncementSaved(false), 2500); }
-    catch (e) { showStatus("❌ Failed to post announcement"); }
-  };
-
+  const saveDay = async (updatedDay) => { setSaving(true); try { await saveDayToDB(tour.id, updatedDay); await onRefresh(); setEditingDay(null); showStatus("✓ Day saved"); } catch (e) { showStatus("❌ Save failed"); } setSaving(false); };
+  const addDay = () => { const n = tour.days.length > 0 ? Math.max(...tour.days.map((d) => d.day)) + 1 : 1; setEditingDay({ day: n, title: `Day ${n}`, location: "", schedule: [], attractions: [] }); };
+  const deleteDay = async (day) => { if (!window.confirm(`Delete Day ${day.day}: ${day.title}?`)) return; setSaving(true); try { if (day.id) await deleteDayFromDB(day.id); await onRefresh(); showStatus("✓ Day deleted"); } catch (e) { showStatus("❌ Delete failed"); } setSaving(false); };
+  const addTour = async (t) => { setSaving(true); try { await saveTourToDB(t); await onRefresh(); setActiveTourId(t.id); setShowAddTour(false); showStatus("✓ Tour created"); } catch (e) { showStatus("❌ Failed to create tour"); } setSaving(false); };
+  const saveSettings = async (settings) => { setSaving(true); try { await supabase.from("tours").update({ notes: settings.notes, guide_name: settings.guide_name, guide_phone: settings.guide_phone, guide_email: settings.guide_email }).eq("id", tour.id); await onRefresh(); setShowSettings(false); showStatus("✓ Settings saved"); } catch (e) { showStatus("❌ Failed to save"); } setSaving(false); };
+  const saveAnnouncement = async () => { try { await supabase.from("tours").update({ announcement: announcementDraft }).eq("id", tour.id); await onRefresh(); setAnnouncementSaved(true); setTimeout(() => setAnnouncementSaved(false), 2500); } catch (e) { showStatus("❌ Failed to post"); } };
   const clearAnnouncement = async () => { setAnnouncementDraft(""); await supabase.from("tours").update({ announcement: "" }).eq("id", tour.id); await onRefresh(); };
-
-  const savePassword = async () => {
-    try { await supabase.from("tours").update({ password: passwordDraft.toUpperCase() }).eq("id", tour.id); await onRefresh(); setEditingPassword(false); showStatus("✓ Access code updated"); }
-    catch (e) { showStatus("❌ Failed to update code"); }
-  };
-
-  const deleteTour = async () => {
-    if (!window.confirm(`Permanently delete "${tour.name}" and all its days?`)) return;
-    setSaving(true);
-    try { await deleteTourFromDB(tour.id); await onRefresh(); showStatus("✓ Tour deleted"); }
-    catch (e) { showStatus("❌ Failed to delete tour"); }
-    setSaving(false);
-  };
+  const savePassword = async () => { try { await supabase.from("tours").update({ password: passwordDraft.toUpperCase() }).eq("id", tour.id); await onRefresh(); setEditingPassword(false); showStatus("✓ Code updated"); } catch (e) { showStatus("❌ Failed"); } };
+  const deleteTour = async () => { if (!window.confirm(`Permanently delete "${tour.name}"?`)) return; setSaving(true); try { await deleteTourFromDB(tour.id); await onRefresh(); showStatus("✓ Tour deleted"); } catch (e) { showStatus("❌ Failed"); } setSaving(false); };
 
   if (!tour) return (
     <div style={{ minHeight: "100vh", background: "#0d1520", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "'Lato',sans-serif", color: "#f0e6d3" }}>
@@ -561,7 +679,7 @@ const GuideDashboard = ({ tours, onLogout, onRefresh }) => {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <div style={{ fontSize: 11, letterSpacing: 3, color: "#c9a96e", textTransform: "uppercase", marginBottom: 6 }}>Guide Dashboard</div>
-            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 26, fontWeight: 700 }}>Castle & Coastline</div>
+            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 26, fontWeight: 700 }}>Castles & Coastlines</div>
           </div>
           <button onClick={onLogout} style={{ background: "none", border: "1px solid #ffffff20", borderRadius: 8, color: "#607080", fontSize: 12, cursor: "pointer", padding: "6px 10px" }}>Log out</button>
         </div>
@@ -586,10 +704,14 @@ const GuideDashboard = ({ tours, onLogout, onRefresh }) => {
           <button onClick={() => setShowQR(true)} style={{ padding: "13px", background: "linear-gradient(135deg,#c9a96e,#a07840)", borderRadius: 12, border: "none", color: "#1a1a2e", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>Show QR Code 📱</button>
           <button onClick={() => setShowSettings(true)} style={{ padding: "13px", background: "#1a2332", border: "1px solid #c9a96e40", borderRadius: 12, color: "#c9a96e", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>Notes & Contact ✏️</button>
         </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+          <button onClick={() => onViewTour(tour)} style={{ padding: "13px", background: "#1a2332", border: "1px solid #c9a96e40", borderRadius: 12, color: "#c9a96e", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>Preview Guest View ↗</button>
+          <button onClick={() => onViewTour(tour, "photos")} style={{ padding: "13px", background: "#1a2332", border: "1px solid #ffffff15", borderRadius: 12, color: "#8090a0", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>View Photos 📸</button>
+        </div>
         {(tour.guide_name || tour.notes) && (
           <div style={{ background: "#1a2332", borderRadius: 14, padding: "14px 18px", marginBottom: 16, border: "1px solid #ffffff10", display: "flex", gap: 16 }}>
             {tour.guide_name && <div style={{ flex: 1 }}><div style={{ fontSize: 11, color: "#607080", marginBottom: 2 }}>GUIDE</div><div style={{ fontSize: 13, color: "#c9a96e", fontWeight: 600 }}>{tour.guide_name}</div></div>}
-            {tour.notes && <div style={{ flex: 1 }}><div style={{ fontSize: 11, color: "#607080", marginBottom: 2 }}>NOTES</div><div style={{ fontSize: 13, color: "#a0b0c0" }}>{tour.notes.split("\n").filter(Boolean).length} note{tour.notes.split("\n").filter(Boolean).length !== 1 ? "s" : ""} added</div></div>}
+            {tour.notes && <div style={{ flex: 1 }}><div style={{ fontSize: 11, color: "#607080", marginBottom: 2 }}>NOTES</div><div style={{ fontSize: 13, color: "#a0b0c0" }}>{tour.notes.split("\n").filter(Boolean).length} note{tour.notes.split("\n").filter(Boolean).length !== 1 ? "s" : ""}</div></div>}
           </div>
         )}
         <div style={{ background: "#1a2332", borderRadius: 16, padding: 20, marginBottom: 16, border: "1px solid #c9a96e20" }}>
@@ -615,7 +737,6 @@ const GuideDashboard = ({ tours, onLogout, onRefresh }) => {
             <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 16 }}>Guest Announcement</div>
             {tour.announcement && <div style={{ marginLeft: "auto", background: "#c9a96e20", border: "1px solid #c9a96e40", borderRadius: 6, padding: "2px 8px", color: "#c9a96e", fontSize: 11 }}>LIVE</div>}
           </div>
-          <div style={{ fontSize: 13, color: "#607080", marginBottom: 12 }}>Guests see this highlighted at the top of their view</div>
           <textarea value={announcementDraft} onChange={(e) => setAnnouncementDraft(e.target.value)} placeholder="e.g. Coach departs 15 minutes early — meet at 8:45am in the lobby!" style={{ width: "100%", background: "#0d1520", border: "1px solid #ffffff20", borderRadius: 10, padding: "10px 12px", color: "#f0e6d3", fontSize: 14, resize: "vertical", minHeight: 80, outline: "none", fontFamily: "'Lato',sans-serif" }} />
           <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
             {tour.announcement && <button onClick={clearAnnouncement} style={{ padding: "9px 14px", background: "#ff444415", border: "1px solid #ff444430", borderRadius: 10, color: "#ff6666", fontSize: 13, cursor: "pointer" }}>Clear</button>}
@@ -642,7 +763,7 @@ const GuideDashboard = ({ tours, onLogout, onRefresh }) => {
                 <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#c9a96e20", border: "1px solid #c9a96e50", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#c9a96e", flexShrink: 0 }}>{day.day}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: 14 }}>{day.title}</div>
-                  <div style={{ color: "#506070", fontSize: 12, marginTop: 2 }}>📍 {day.location || "No location set"} · {day.schedule.length} events · {day.attractions?.length || 0} attractions</div>
+                  <div style={{ color: "#506070", fontSize: 12, marginTop: 2 }}>📍 {day.location || "No location"} · {day.schedule.length} events · {day.attractions?.length || 0} attractions</div>
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
                   <button onClick={() => setEditingDay(day)} style={{ background: "#c9a96e20", border: "1px solid #c9a96e40", borderRadius: 8, padding: "6px 12px", color: "#c9a96e", fontSize: 13, cursor: "pointer" }}>Edit</button>
@@ -667,6 +788,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState("login");
   const [guestTourId, setGuestTourId] = useState(null);
+  const [guestStartPage, setGuestStartPage] = useState("itinerary");
   const [isGuide, setIsGuide] = useState(false);
 
   const fetchTours = async () => {
@@ -685,10 +807,12 @@ export default function App() {
 
   const liveTour = guestTourId ? tours.find((t) => t.id === guestTourId) : null;
 
+  const handleViewTour = (tour, page = "itinerary") => { setGuestTourId(tour.id); setGuestStartPage(page); setView("guest"); };
+
   if (loading) return (
     <div style={{ minHeight: "100vh", background: "#0d1520", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "'Lato',sans-serif", color: "#f0e6d3" }}>
       <div style={{ fontSize: 40, marginBottom: 16 }}>🏰</div>
-      <div style={{ fontSize: 11, letterSpacing: 4, color: "#c9a96e", textTransform: "uppercase" }}>Castle & Coastline</div>
+      <div style={{ fontSize: 11, letterSpacing: 4, color: "#c9a96e", textTransform: "uppercase" }}>Castles & Coastlines</div>
       <div style={{ color: "#405060", fontSize: 13, marginTop: 12 }}>Loading your tours…</div>
     </div>
   );
@@ -707,9 +831,9 @@ export default function App() {
         textarea, input { font-family: 'Lato', sans-serif; }
       `}</style>
       <div style={{ maxWidth: 480, margin: "0 auto" }}>
-        {view === "login" && <GuestLogin tours={tours} onUnlock={(tour) => { setGuestTourId(tour.id); setView("guest"); }} onGuideLogin={() => { setIsGuide(true); setView("guide"); }} />}
-        {view === "guide" && isGuide && <GuideDashboard tours={tours} onLogout={() => { setIsGuide(false); setView("login"); }} onRefresh={fetchTours} />}
-        {view === "guest" && liveTour && <GuestView tour={liveTour} onLogout={() => setView("login")} />}
+        {view === "login" && <GuestLogin tours={tours} onUnlock={(tour) => { setGuestTourId(tour.id); setGuestStartPage("itinerary"); setView("guest"); }} onGuideLogin={() => { setIsGuide(true); setView("guide"); }} />}
+        {view === "guide" && isGuide && <GuideDashboard tours={tours} onLogout={() => { setIsGuide(false); setView("login"); }} onRefresh={fetchTours} onViewTour={handleViewTour} />}
+        {view === "guest" && liveTour && <GuestView tour={liveTour} onLogout={() => setView("login")} isGuide={isGuide} startPage={guestStartPage} />}
       </div>
     </>
   );

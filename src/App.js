@@ -184,7 +184,6 @@ const CoachSeatingPlan = ({ tour, guestName, isGuide }) => {
   const seats = tour.seats || [];
 
   const getSeat = (r, c) => seats.find((s) => s.row === r && s.col === c);
-  const isAisle = (c) => cols === 4 && c === 1; // gap between col 1 and 2
 
   return (
     <div style={{ padding: 24 }}>

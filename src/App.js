@@ -286,6 +286,36 @@ const SeatingEditor = ({ tour, onSave, onClose, saving }) => {
     if (editing) { setSeatData((prev) => ({ ...prev, [editing]: "" })); setEditing(null); setNameInput(""); }
   };
 
+  const [rotateAmount, setRotateAmount] = useState(1);
+  const [rotateConfirm, setRotateConfirm] = useState(null);
+
+  // Build clockwise seat order: left side top→bottom, right side bottom→top
+  const buildClockwiseOrder = () => {
+    const halfCols = Math.floor(cols / 2);
+    const order = [];
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < halfCols; col++) order.push(`${row}-${col}`);
+    }
+    for (let row = rows - 1; row >= 0; row--) {
+      for (let col = cols - 1; col >= halfCols; col--) order.push(`${row}-${col}`);
+    }
+    return order;
+  };
+
+  const rotateSeat = (direction) => {
+    const order = buildClockwiseOrder();
+    const total = order.length;
+    const steps = direction === "clockwise" ? rotateAmount : total - (rotateAmount % total);
+    const newData = {};
+    order.forEach((key, i) => {
+      const newIndex = (i + steps) % total;
+      const newKey = order[newIndex];
+      if (seatData[key]) newData[newKey] = seatData[key];
+    });
+    setSeatData(newData);
+    setRotateConfirm(null);
+  };
+
   return (
     <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 1000, overflowY: "auto", padding: "20px 16px" }}>
       <div style={{ background: "#1a2332", borderRadius: 20, padding: 24, maxWidth: 480, margin: "0 auto", border: "1px solid #c9a96e30" }}>
@@ -310,6 +340,32 @@ const SeatingEditor = ({ tour, onSave, onClose, saving }) => {
               <option value={4}>4 (standard coach)</option>
             </select>
           </div>
+        </div>
+
+        {/* Rotation controls */}
+        <div style={{ background: "#0d1520", borderRadius: 12, padding: "14px 16px", marginBottom: 16, border: "1px solid #ffffff10" }}>
+          <div style={{ fontSize: 12, color: "#c9a96e", fontWeight: 600, marginBottom: 10 }}>🔄 Rotate Seating Plan</div>
+          <div style={{ fontSize: 12, color: "#506070", marginBottom: 10 }}>Shifts everyone clockwise or anti-clockwise around the coach by the number of seats you choose.</div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
+            <label style={{ fontSize: 11, color: "#8090a0", whiteSpace: "nowrap" }}>Rotate by</label>
+            <input type="number" value={rotateAmount} min={1} max={rows * cols - 1} onChange={(e) => setRotateAmount(Math.max(1, parseInt(e.target.value) || 1))}
+              style={{ width: 60, background: "#1a2332", border: "1px solid #ffffff20", borderRadius: 8, padding: "6px 8px", color: "#f0e6d3", fontSize: 14, outline: "none", textAlign: "center" }} />
+            <label style={{ fontSize: 11, color: "#8090a0" }}>seats</label>
+          </div>
+          {rotateConfirm ? (
+            <div>
+              <div style={{ fontSize: 12, color: "#ff9966", marginBottom: 8 }}>⚠️ This will move all assigned guests. Are you sure?</div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={() => rotateSeat(rotateConfirm)} style={{ flex: 1, padding: "8px", background: "linear-gradient(135deg,#c9a96e,#a07840)", border: "none", borderRadius: 8, color: "#1a1a2e", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Yes, rotate</button>
+                <button onClick={() => setRotateConfirm(null)} style={{ flex: 1, padding: "8px", background: "transparent", border: "1px solid #ffffff20", borderRadius: 8, color: "#8090a0", fontSize: 13, cursor: "pointer" }}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => setRotateConfirm("clockwise")} style={{ flex: 1, padding: "8px", background: "#c9a96e15", border: "1px solid #c9a96e40", borderRadius: 8, color: "#c9a96e", fontSize: 13, cursor: "pointer" }}>↻ Clockwise</button>
+              <button onClick={() => setRotateConfirm("anticlockwise")} style={{ flex: 1, padding: "8px", background: "#c9a96e15", border: "1px solid #c9a96e40", borderRadius: 8, color: "#c9a96e", fontSize: 13, cursor: "pointer" }}>↺ Anti-clockwise</button>
+            </div>
+          )}
         </div>
 
         <div style={{ fontSize: 12, color: "#607080", marginBottom: 14 }}>Tap any seat to assign a guest name</div>

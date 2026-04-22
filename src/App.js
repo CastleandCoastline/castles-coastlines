@@ -138,7 +138,7 @@ const GuestLogin = ({ tours, onUnlock, onGuideLogin }) => {
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(160deg,#0d1520 0%,#1a2332 60%,#0d1520 100%)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, fontFamily: "'Lato',sans-serif" }}>
       <div style={{ fontSize: 52, marginBottom: 16 }}>🏰</div>
-      <div style={{ fontSize: 11, letterSpacing: 4, color: "#c9a96e", textTransform: "uppercase", marginBottom: 8 }}>Castles & Coastlines</div>
+      <div style={{ fontSize: 11, letterSpacing: 4, color: "#c9a96e", textTransform: "uppercase", marginBottom: 8 }}>Castle & Coastline</div>
       <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 28, color: "#f0e6d3", textAlign: "center", marginBottom: 8 }}>Welcome</div>
       <div style={{ color: "#607080", fontSize: 14, textAlign: "center", marginBottom: 40, maxWidth: 280, lineHeight: 1.6 }}>Enter the access code provided by your tour guide to view your itinerary</div>
       <div style={{ width: "100%", maxWidth: 320 }}>
@@ -277,7 +277,7 @@ const GuestView = ({ tour, onLogout }) => {
       <AnnouncementBanner text={tour.announcement} />
       <div style={{ background: "linear-gradient(180deg,#0a0f1a 0%,transparent 100%)", padding: "20px 24px 14px", borderBottom: "1px solid #ffffff10" }}>
         <button onClick={onLogout} style={{ background: "none", border: "none", color: "#506070", cursor: "pointer", fontSize: 12, marginBottom: 8, padding: 0 }}>← Change tour</button>
-        <div style={{ fontSize: 11, letterSpacing: 3, color: "#c9a96e", textTransform: "uppercase", marginBottom: 3 }}>Castles & Coastlines</div>
+        <div style={{ fontSize: 11, letterSpacing: 3, color: "#c9a96e", textTransform: "uppercase", marginBottom: 3 }}>Castle & Coastline</div>
         <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, lineHeight: 1.2 }}>{tour.name}</div>
         <div style={{ color: "#8090a0", fontSize: 12, marginTop: 3 }}>{tour.duration}-day tour</div>
       </div>
@@ -561,7 +561,7 @@ const GuideDashboard = ({ tours, onLogout, onRefresh }) => {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <div style={{ fontSize: 11, letterSpacing: 3, color: "#c9a96e", textTransform: "uppercase", marginBottom: 6 }}>Guide Dashboard</div>
-            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 26, fontWeight: 700 }}>Castles & Coastlines</div>
+            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 26, fontWeight: 700 }}>Castle & Coastline</div>
           </div>
           <button onClick={onLogout} style={{ background: "none", border: "1px solid #ffffff20", borderRadius: 8, color: "#607080", fontSize: 12, cursor: "pointer", padding: "6px 10px" }}>Log out</button>
         </div>
@@ -688,7 +688,7 @@ export default function App() {
   if (loading) return (
     <div style={{ minHeight: "100vh", background: "#0d1520", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "'Lato',sans-serif", color: "#f0e6d3" }}>
       <div style={{ fontSize: 40, marginBottom: 16 }}>🏰</div>
-      <div style={{ fontSize: 11, letterSpacing: 4, color: "#c9a96e", textTransform: "uppercase" }}>Castles & Coastlines</div>
+      <div style={{ fontSize: 11, letterSpacing: 4, color: "#c9a96e", textTransform: "uppercase" }}>Castle & Coastline</div>
       <div style={{ color: "#405060", fontSize: 13, marginTop: 12 }}>Loading your tours…</div>
     </div>
   );

@@ -846,7 +846,6 @@ const EmergencyPage = () => {
 
       const results = [];
       FACILITY_TYPES.forEach(type => {
-        const matching = data.elements.filter(e => e.tags?.amenity === type.key.replace('doctors','doctors'));
         const amenityKey = type.query.split('=')[1];
         const typeElements = data.elements.filter(e => e.tags?.amenity === amenityKey);
         if (typeElements.length > 0) {

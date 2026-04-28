@@ -803,7 +803,11 @@ const UsefulInfoPage = ({ tour, currentLocation }) => {
       {/* Local Phrases — show all regions, highlight current */}
       <div style={{ marginBottom: 20 }}>
         <div style={{ fontSize: 12, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600, marginBottom: 12 }}>Local Phrases</div>
-        {Object.entries(PHRASES).map(([key, lang]) => {
+        {Object.entries(PHRASES).sort(([a], [b]) => {
+          if (a === region) return -1;
+          if (b === region) return 1;
+          return 0;
+        }).map(([key, lang]) => {
           const isCurrent = region === key;
           return (
             <div key={key} style={{ background: "#1a2332", borderRadius: 14, padding: 16, border: `1px solid ${isCurrent ? "#c9a96e40" : "#ffffff10"}`, marginBottom: 10 }}>
@@ -851,26 +855,16 @@ const UsefulInfoPage = ({ tour, currentLocation }) => {
 // ── Emergency Page ─────────────────────────────────────────────────────────────
 const EmergencyPage = () => {
   const [location, setLocation] = useState(null);
-  const [facilities, setFacilities] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [permissionDenied, setPermissionDenied] = useState(false);
 
   const FACILITY_TYPES = [
-    { key: "hospital", label: "Hospital / A&E", icon: "🏥", query: 'amenity=hospital' },
-    { key: "pharmacy", label: "Pharmacy", icon: "💊", query: 'amenity=pharmacy' },
-    { key: "police", label: "Police Station", icon: "🚓", query: 'amenity=police' },
-    { key: "doctors", label: "GP / Doctor", icon: "👨‍⚕️", query: 'amenity=doctors' },
+    { key: "hospital", label: "Hospital / A&E", icon: "🏥", search: "hospital" },
+    { key: "pharmacy", label: "Pharmacy", icon: "💊", search: "pharmacy" },
+    { key: "police", label: "Police Station", icon: "🚓", search: "police+station" },
+    { key: "doctors", label: "GP / Doctor", icon: "👨‍⚕️", search: "GP+doctor" },
   ];
-
-  const getDistance = (lat1, lng1, lat2, lng2) => {
-    const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat/2)**2 + Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLng/2)**2;
-    const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return dist < 1 ? `${Math.round(dist * 1000)}m` : `${dist.toFixed(1)}km`;
-  };
 
   const findFacilities = async (lat, lng) => {
     setLoading(true); setError(""); setFacilities([]);
@@ -880,15 +874,7 @@ const EmergencyPage = () => {
         `node[${t.query}](around:${radius},${lat},${lng});way[${t.query}](around:${radius},${lat},${lng});`
       ).join('');
       const query = `[out:json][timeout:15];(${queries});out center;`;
-      const endpoints = [
-        'https://overpass.kumi.systems/api/interpreter',
-        'https://overpass-api.de/api/interpreter',
-      ];
-      let res = null;
-      for (const ep of endpoints) {
-        try { res = await fetch(`${ep}?data=${encodeURIComponent(query)}`); if (res.ok) break; } catch (e) { continue; }
-      }
-      if (!res || !res.ok) throw new Error('Could not reach Overpass API');
+      const res = await fetch(`https://overpass.kumi.systems/api/interpreter?data=${encodeURIComponent(query)}`);
       const data = await res.json();
 
       const results = [];
@@ -934,7 +920,7 @@ const EmergencyPage = () => {
         if (err.code === 1) setPermissionDenied(true);
         else setError("Could not get your location. Please try again.");
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
     );
   };
 
@@ -965,12 +951,12 @@ const EmergencyPage = () => {
         <div style={{ textAlign: "center", padding: "30px 20px", background: "#1a2332", borderRadius: 16, border: "1px solid #ffffff10" }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>📍</div>
           <div style={{ color: "#f0e6d3", fontSize: 15, fontWeight: 600, marginBottom: 8 }}>Find Nearby Facilities</div>
-          <div style={{ color: "#607080", fontSize: 13, marginBottom: 20, lineHeight: 1.6 }}>Tap below to find the nearest hospital, pharmacy, police station and GP based on your current location</div>
+          <div style={{ color: "#607080", fontSize: 13, marginBottom: 20, lineHeight: 1.6 }}>Tap below — we'll detect your location then show buttons to find the nearest hospital, pharmacy, police station and GP in Google Maps</div>
           {permissionDenied ? (
-            <div style={{ color: "#ff6666", fontSize: 13 }}>Location permission denied. Please enable location access in your phone settings and try again.</div>
+            <div style={{ color: "#ff6666", fontSize: 13, padding: "0 10px" }}>Location permission denied. Please go to your phone Settings → Safari → Location and set it to Allow.</div>
           ) : (
             <button onClick={requestLocation} style={{ padding: "12px 24px", background: "linear-gradient(135deg,#c9a96e,#a07840)", borderRadius: 12, border: "none", color: "#1a1a2e", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>
-              📍 Find Nearest Facilities
+              📍 Use My Location
             </button>
           )}
         </div>
@@ -978,8 +964,8 @@ const EmergencyPage = () => {
 
       {loading && (
         <div style={{ textAlign: "center", padding: "40px 20px", color: "#607080" }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>🔍</div>
-          <div>Finding nearby facilities…</div>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>📍</div>
+          <div>Getting your location…</div>
         </div>
       )}
 
@@ -990,39 +976,32 @@ const EmergencyPage = () => {
         </div>
       )}
 
-      {facilities.length > 0 && (
+      {location && (
         <>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <div style={{ fontSize: 12, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600 }}>Nearest Facilities</div>
-            <button onClick={requestLocation} style={{ background: "none", border: "none", color: "#607080", fontSize: 12, cursor: "pointer" }}>🔄 Refresh</button>
+            <button onClick={requestLocation} style={{ background: "none", border: "none", color: "#607080", fontSize: 12, cursor: "pointer" }}>🔄 Refresh location</button>
           </div>
+          <div style={{ fontSize: 12, color: "#506070", marginBottom: 14 }}>Tap any button to open in Google Maps and find the nearest one to you</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {facilities.map((f, i) => (
-              <div key={i} style={{ background: "#1a2332", borderRadius: 14, padding: "14px 16px", border: "1px solid #ffffff10" }}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                  <div style={{ fontSize: 28, flexShrink: 0 }}>{f.icon}</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 11, color: "#c9a96e", textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>{f.label}</div>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: "#f0e6d3", marginBottom: 2 }}>{f.name}</div>
-                    <div style={{ fontSize: 12, color: "#607080", marginBottom: 6 }}>{f.address}</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ background: "#c9a96e20", border: "1px solid #c9a96e30", borderRadius: 20, padding: "2px 10px", fontSize: 11, color: "#c9a96e" }}>📍 {f.distance}</span>
-                    </div>
-                  </div>
+            {FACILITY_TYPES.map((f, i) => (
+              <div key={i} style={{ background: "#1a2332", borderRadius: 14, padding: "16px 18px", border: "1px solid #ffffff10", display: "flex", alignItems: "center", gap: 14 }}>
+                <div style={{ fontSize: 32, flexShrink: 0 }}>{f.icon}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: "#f0e6d3", marginBottom: 2 }}>{f.label}</div>
+                  <div style={{ fontSize: 12, color: "#506070" }}>Opens Google Maps near your location</div>
                 </div>
-                <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                  {f.phone && (
-                    <a href={`tel:${f.phone}`} style={{ flex: 1, padding: "8px", background: "#c9a96e20", border: "1px solid #c9a96e40", borderRadius: 8, color: "#c9a96e", fontWeight: 700, fontSize: 13, textDecoration: "none", textAlign: "center" }}>
-                      📞 Call
-                    </a>
-                  )}
-                  <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.name)}&center=${f.lat},${f.lng}`} target="_blank" rel="noopener noreferrer"
-                    style={{ flex: 1, padding: "8px", background: "#1a3a2a", border: "1px solid #2a6a4a", borderRadius: 8, color: "#6abf8a", fontWeight: 700, fontSize: 13, textDecoration: "none", textAlign: "center" }}>
-                    🗺️ Directions
-                  </a>
-                </div>
+                <button onClick={() => openGoogleMapsSearch(f.search)}
+                  style={{ background: "linear-gradient(135deg,#c9a96e,#a07840)", border: "none", borderRadius: 10, padding: "8px 14px", color: "#1a1a2e", fontWeight: 700, fontSize: 13, cursor: "pointer", flexShrink: 0 }}>
+                  Find →
+                </button>
               </div>
             ))}
+          </div>
+          <div style={{ background: "#1a2332", borderRadius: 12, padding: "12px 16px", marginTop: 14, border: "1px solid #ffffff10" }}>
+            <div style={{ fontSize: 12, color: "#506070", textAlign: "center", lineHeight: 1.6 }}>
+              📍 Location detected · Tap <strong style={{ color: "#8090a0" }}>Find →</strong> to search Google Maps near you
+            </div>
           </div>
         </>
       )}

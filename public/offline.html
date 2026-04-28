@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Castle & Coastline — Offline</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0d1520;
+      color: #f0e6d3;
+      font-family: -apple-system, 'Lato', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      text-align: center;
+    }
+    img { width: 120px; height: 120px; object-fit: contain; margin-bottom: 24px; }
+    h1 { font-size: 22px; margin-bottom: 10px; font-weight: 600; }
+    p { color: #607080; font-size: 14px; line-height: 1.7; max-width: 280px; margin-bottom: 32px; }
+    .tip { background: #1a2332; border: 1px solid #c9a96e30; border-radius: 14px; padding: 16px 20px; max-width: 300px; }
+    .tip-title { color: #c9a96e; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+    .tip-text { color: #8090a0; font-size: 13px; line-height: 1.6; }
+    button { margin-top: 20px; padding: 12px 24px; background: linear-gradient(135deg, #c9a96e, #a07840); border: none; border-radius: 12px; color: #1a1a2e; font-weight: 700; font-size: 15px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <img src="/logo-app.png" alt="Castle & Coastline" />
+  <h1>You're offline</h1>
+  <p>No internet connection detected. If you've opened your tour before, tap below to try loading it from your device.</p>
+  <div class="tip">
+    <div class="tip-title">💡 Tip for next time</div>
+    <div class="tip-text">Open the app and load your tour while you have signal — it will save automatically so you can access it offline later.</div>
+  </div>
+  <button onclick="window.location.reload()">Try Again</button>
+</body>
+</html>

@@ -975,6 +975,12 @@ export default function App() {
       const theme = document.createElement("meta"); theme.name = "theme-color"; theme.content = "#0d1520"; document.head.appendChild(theme);
     }
     fetchTours();
+    // Register service worker for offline support
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(() => console.log('Service worker registered'))
+        .catch((e) => console.log('SW registration failed:', e));
+    }
   }, []);
 
   const liveTour = guestTourId ? tours.find((t) => t.id === guestTourId) : null;

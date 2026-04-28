@@ -646,7 +646,7 @@ const NotesPage = ({ tour }) => {
 };
 
 // ── Guest View ────────────────────────────────────────────────────────────────
-const GuestView = ({ tour, onLogout, isGuide, startPage }) => {
+const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
   const [activeDay, setActiveDay] = useState(0);
   const [activePage, setActivePage] = useState(startPage || "itinerary");
   const day = tour.days[activeDay];

@@ -791,7 +791,6 @@ const UsefulInfoPage = ({ tour, currentLocation }) => {
   const notes = tour.notes || "";
   const paragraphs = notes.split("\n").filter(p => p.trim());
   const region = detectRegion(currentLocation || "");
-  const phrases = region ? PHRASES[region] : null;
 
   return (
     <div style={{ padding: 24 }}>

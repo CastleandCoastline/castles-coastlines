@@ -42,7 +42,7 @@ async function saveCourse(menuId, course) {
   if (error) throw error;
   await supabase.from("menu_options").delete().eq("course_id", c.id);
   if (course.options.length > 0) {
-    await supabase.from("menu_options").insert(course.options.map((o, i) => ({ course_id: c.id, name: o.name, description: o.description || "", sort_order: i })));
+    await supabase.from("menu_options").insert(course.options.map((o, i) => ({ course_id: c.id, name: o.name, description: o.description || "", allergens: o.allergens || "", sort_order: i })));
   }
   return c;
 }
@@ -180,6 +180,7 @@ const GuestOrderScreen = ({ menu, onOrderSubmitted, locked }) => {
                         <div>
                           <div style={{ fontWeight: 600, fontSize: 15, color: selected ? TEXT : "#c0d0e0" }}>{option.name}</div>
                           {option.description && <div style={{ fontSize: 12, color: SUB, marginTop: 3, lineHeight: 1.5 }}>{option.description}</div>}
+                          {option.allergens && <div style={{ fontSize: 11, color: "#c9a96e80", marginTop: 4, fontStyle: "italic" }}>⚠️ {option.allergens}</div>}
                         </div>
                       </div>
                     );
@@ -318,6 +319,7 @@ const OrderSummary = ({ menu, orders, onBack, onClearOrders }) => {
                     <div key={opt.id} style={{ background: MID, borderRadius: 12, padding: "12px 16px", marginBottom: 8, border: "1px solid #ffffff10", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 3 }}>{opt.name}</div>
+                        {opt.allergens && <div style={{ fontSize: 11, color: "#c9a96e80", fontStyle: "italic", marginBottom: 3 }}>⚠️ {opt.allergens}</div>}
                         <div style={{ fontSize: 12, color: SUB }}>{guests.join(", ")}</div>
                       </div>
                       <div style={{ background: "#c9a96e20", border: "1px solid #c9a96e40", borderRadius: 20, padding: "3px 10px", fontSize: 13, color: GOLD, fontWeight: 700, flexShrink: 0, marginLeft: 10 }}>×{guests.length}</div>
@@ -424,6 +426,7 @@ const MenuEditor = ({ menu, onSave, onClose, saving }) => {
                   <button onClick={() => removeOption(ci, oi)} style={{ background: "#ff444415", border: "none", borderRadius: 6, color: "#ff6666", cursor: "pointer", padding: "0 8px", fontSize: 14 }}>×</button>
                 </div>
                 {inp(opt.description, (v) => updateOption(ci, oi, "description", v), "Description (optional)")}
+                {inp(opt.allergens || "", (v) => updateOption(ci, oi, "allergens", v), "Allergens (optional) e.g. Gluten, Dairy, Nuts")}
               </div>
             ))}
             <button onClick={() => addOption(ci)} style={{ width: "100%", padding: "7px", background: "#c9a96e10", border: "1px dashed #c9a96e30", borderRadius: 8, color: GOLD, fontSize: 12, cursor: "pointer", marginTop: 4 }}>+ Add Option</button>
@@ -494,9 +497,9 @@ const GuideDashboard = ({ menus, onRefresh, onLogout }) => {
   // Locked ordering mode — fullscreen, no way out except PIN
   if (locked && view === "ordering" && activeMenu) {
     return (
-      <div style={{ position: "fixed", inset: 0, zIndex: 9999 }}>
+      <div style={{ position: "fixed", inset: 0, zIndex: 9999, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
         <GuestOrderScreen menu={activeMenu} onOrderSubmitted={() => fetchOrders(activeMenu.id)} locked={true} />
-        {/* Hidden unlock area — triple tap top right corner */}
+        {/* Hidden unlock area — double tap top right corner */}
         <div onDoubleClick={() => { const pin = window.prompt("Enter guide PIN to unlock:"); if (pin?.toUpperCase() === GUIDE_PIN) setLocked(false); }}
           style={{ position: "fixed", top: 0, right: 0, width: 60, height: 60, zIndex: 10000, cursor: "default" }} />
       </div>
@@ -543,7 +546,10 @@ const GuideDashboard = ({ menus, onRefresh, onLogout }) => {
               <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700 }}>Menu Orders</div>
             </div>
           </div>
-          <button onClick={onLogout} style={{ background: "none", border: "1px solid #ffffff20", borderRadius: 8, color: SUB, fontSize: 12, cursor: "pointer", padding: "6px 10px" }}>Log out</button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={() => window.location.href = '/'} style={{ background: "none", border: "1px solid #ffffff20", borderRadius: 8, color: SUB, fontSize: 12, cursor: "pointer", padding: "6px 10px" }}>← Tour App</button>
+            <button onClick={onLogout} style={{ background: "none", border: "1px solid #ffffff20", borderRadius: 8, color: SUB, fontSize: 12, cursor: "pointer", padding: "6px 10px" }}>Log out</button>
+          </div>
         </div>
       </div>
 

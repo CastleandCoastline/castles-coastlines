@@ -872,7 +872,7 @@ const EmergencyPage = () => {
       (pos) => {
         const { latitude, longitude } = pos.coords;
         setLocation({ lat: latitude, lng: longitude });
-        findFacilities(latitude, longitude);
+        setLoading(false);
       },
       (err) => {
         setLoading(false);

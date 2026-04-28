@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { Analytics } from '@vercel/analytics/react';
 import App from './App';
 import MenuOrder from './MenuOrder';
 
@@ -7,4 +8,9 @@ const path = window.location.pathname;
 const Component = path.startsWith('/menu') ? MenuOrder : App;
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
-root.render(<React.StrictMode><Component /></React.StrictMode>);
+root.render(
+  <React.StrictMode>
+    <Component />
+    <Analytics />
+  </React.StrictMode>
+);

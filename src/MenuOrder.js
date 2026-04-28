@@ -457,6 +457,28 @@ const GuideDashboard = ({ menus, onRefresh, onLogout }) => {
   const [statusMsg, setStatusMsg] = useState("");
   const [orderCount, setOrderCount] = useState(0);
 
+  // Block iOS swipe-back when locked — must be at top level, not inside conditional
+  useEffect(() => {
+    if (!locked) return;
+    let startX = 0; let startY = 0;
+    const onStart = (e) => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; };
+    const onMove = (e) => {
+      const dx = Math.abs(e.touches[0].clientX - startX);
+      const dy = Math.abs(e.touches[0].clientY - startY);
+      if (dx > dy + 5) e.preventDefault();
+    };
+    document.addEventListener('touchstart', onStart, { passive: true });
+    document.addEventListener('touchmove', onMove, { passive: false });
+    window.history.pushState(null, '', window.location.href);
+    const onPop = () => window.history.pushState(null, '', window.location.href);
+    window.addEventListener('popstate', onPop);
+    return () => {
+      document.removeEventListener('touchstart', onStart);
+      document.removeEventListener('touchmove', onMove);
+      window.removeEventListener('popstate', onPop);
+    };
+  }, [locked]);
+
   const showStatus = (msg) => { setStatusMsg(msg); setTimeout(() => setStatusMsg(""), 3000); };
 
   const fetchOrders = async (menuId) => {
@@ -496,27 +518,6 @@ const GuideDashboard = ({ menus, onRefresh, onLogout }) => {
 
   // Locked ordering mode — fullscreen, no way out except PIN
   if (locked && view === "ordering" && activeMenu) {
-    // Block iOS swipe-back at DOM level (passive: false required)
-    useEffect(() => {
-      let startX = 0; let startY = 0;
-      const onStart = (e) => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; };
-      const onMove = (e) => {
-        const dx = Math.abs(e.touches[0].clientX - startX);
-        const dy = Math.abs(e.touches[0].clientY - startY);
-        if (dx > dy + 5) e.preventDefault();
-      };
-      document.addEventListener('touchstart', onStart, { passive: true });
-      document.addEventListener('touchmove', onMove, { passive: false });
-      // Also push a history state so back button stays within app
-      window.history.pushState(null, '', window.location.href);
-      const onPop = () => window.history.pushState(null, '', window.location.href);
-      window.addEventListener('popstate', onPop);
-      return () => {
-        document.removeEventListener('touchstart', onStart);
-        document.removeEventListener('touchmove', onMove);
-        window.removeEventListener('popstate', onPop);
-      };
-    }, [locked]);
     return (
       <div style={{ position: "fixed", inset: 0, zIndex: 9999, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
         <GuestOrderScreen menu={activeMenu} onOrderSubmitted={() => fetchOrders(activeMenu.id)} locked={true} />

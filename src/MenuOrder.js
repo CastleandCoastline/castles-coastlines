@@ -496,8 +496,19 @@ const GuideDashboard = ({ menus, onRefresh, onLogout }) => {
 
   // Locked ordering mode — fullscreen, no way out except PIN
   if (locked && view === "ordering" && activeMenu) {
+    // Block horizontal swipe (back/forward) but allow vertical scroll
+    const handleTouchStart = (e) => { handleTouchStart._startX = e.touches[0].clientX; handleTouchStart._startY = e.touches[0].clientY; };
+    const handleTouchMove = (e) => {
+      const dx = Math.abs(e.touches[0].clientX - handleTouchStart._startX);
+      const dy = Math.abs(e.touches[0].clientY - handleTouchStart._startY);
+      if (dx > dy) e.preventDefault();
+    };
     return (
-      <div style={{ position: "fixed", inset: 0, zIndex: 9999, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+      <div
+        style={{ position: "fixed", inset: 0, zIndex: 9999, overflowY: "auto", WebkitOverflowScrolling: "touch" }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+      >
         <GuestOrderScreen menu={activeMenu} onOrderSubmitted={() => fetchOrders(activeMenu.id)} locked={true} />
         {/* Hidden unlock area — double tap top right corner */}
         <div onDoubleClick={() => { const pin = window.prompt("Enter guide PIN to unlock:"); if (pin?.toUpperCase() === GUIDE_PIN) setLocked(false); }}

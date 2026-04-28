@@ -41,6 +41,10 @@ self.addEventListener('fetch', (event) => {
   if (url.hostname.includes('supabase.co')) return;
   if (url.hostname.includes('open-meteo.com')) return;
   if (url.hostname.includes('openstreetmap.org')) return;
+  if (url.hostname.includes('overpass-api.de')) return;
+  if (url.hostname.includes('overpass.kumi.systems')) return;
+  if (url.hostname.includes('exchangerate-api.com')) return;
+  if (url.hostname.includes('frankfurter.app')) return;
   if (url.hostname.includes('googleapis.com')) return;
 
   event.respondWith(

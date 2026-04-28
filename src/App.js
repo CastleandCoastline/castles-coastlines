@@ -601,7 +601,7 @@ const AnnouncementBanner = ({ text }) => {
 
 // ── Guest Nav ─────────────────────────────────────────────────────────────────
 const GuestNav = ({ active, onChange }) => {
-  const tabs = [{ id: "itinerary", icon: "🗓️", label: "Itinerary" }, { id: "coach", icon: "🚌", label: "Seats" }, { id: "photos", icon: "📸", label: "Photos" }, { id: "info", icon: "💡", label: "Info" }, { id: "emergency", icon: "🚑", label: "Emergency" }, { id: "contact", icon: "📞", label: "Contact" }];
+  const tabs = [{ id: "itinerary", icon: "🗓️", label: "Itinerary" }, { id: "coach", icon: "🚌", label: "Seats" }, { id: "photos", icon: "📸", label: "Photos" }, { id: "info", icon: "💡", label: "Info" }, { id: "contact", icon: "📞", label: "Contact" }, { id: "emergency", icon: "🚑", label: "Emergency" }];
   return (
     <div style={{ display: "flex", borderTop: "1px solid #ffffff10", background: "#0d1520", position: "sticky", bottom: 0 }}>
       {tabs.map((tab) => (
@@ -704,30 +704,64 @@ const detectRegion = (location) => {
 
 // ── Currency Converter ─────────────────────────────────────────────────────────
 const CurrencyConverter = () => {
-  const [amount, setAmount] = useState("1");
+  const [amount, setAmount] = useState("10");
   const [from, setFrom] = useState("GBP");
   const [to, setTo] = useState("EUR");
-  const [rate, setRate] = useState(null);
+  const [rates, setRates] = useState({});
   const [loading, setLoading] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
   const currencies = ["GBP", "EUR", "USD", "CAD", "AUD", "JPY", "CHF", "SEK", "NOK", "NZD"];
 
-  useEffect(() => {
-    if (from === to) { setRate(1); return; }
+  const fetchRates = (baseCurrency) => {
     setLoading(true);
-    fetch(`https://api.frankfurter.app/latest?from=${from}&to=${to}`)
+    // Use exchangerate-api free endpoint
+    fetch(`https://api.exchangerate-api.com/v4/latest/${baseCurrency}`)
       .then(r => r.json())
-      .then(d => { setRate(d.rates[to]); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, [from, to]);
+      .then(d => {
+        if (d.rates) {
+          setRates(d.rates);
+          setLastUpdated(new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        // Fallback to frankfurter
+        fetch(`https://api.frankfurter.app/latest?from=${baseCurrency}`)
+          .then(r => r.json())
+          .then(d => {
+            if (d.rates) {
+              setRates({ ...d.rates, [baseCurrency]: 1 });
+              setLastUpdated(new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
+            }
+            setLoading(false);
+          })
+          .catch(() => setLoading(false));
+      });
+  };
 
-  const result = rate && amount ? (parseFloat(amount) * rate).toFixed(2) : null;
+  useEffect(() => { fetchRates(from); }, [from]);
+
+  const rate = rates[to] || null;
+  const result = rate && amount ? (parseFloat(amount) * rate).toFixed(rate < 0.1 ? 0 : 2) : null;
+
+  const handleSwap = () => {
+    const newFrom = to;
+    const newTo = from;
+    setFrom(newFrom);
+    setTo(newTo);
+  };
 
   return (
     <div style={{ background: "#1a2332", borderRadius: 14, padding: 18, border: "1px solid #ffffff10", marginBottom: 20 }}>
-      <div style={{ fontSize: 13, color: "#c9a96e", fontWeight: 600, marginBottom: 14 }}>💱 Currency Converter</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <div style={{ fontSize: 13, color: "#c9a96e", fontWeight: 600 }}>💱 Currency Converter</div>
+        <button onClick={() => fetchRates(from)} style={{ background: "none", border: "none", color: "#506070", fontSize: 11, cursor: "pointer" }}>
+          {loading ? "updating…" : lastUpdated ? `Updated ${lastUpdated} 🔄` : "Load rates"}
+        </button>
+      </div>
       <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
         <input value={amount} onChange={e => setAmount(e.target.value)} type="number" placeholder="Amount"
-          style={{ flex: 1, background: "#0d1520", border: "1px solid #ffffff20", borderRadius: 8, padding: "10px 12px", color: "#f0e6d3", fontSize: 16, outline: "none" }} />
+          style={{ flex: 1, background: "#0d1520", border: "1px solid #ffffff20", borderRadius: 8, padding: "10px 12px", color: "#f0e6d3", fontSize: 18, fontWeight: 700, outline: "none" }} />
         <select value={from} onChange={e => setFrom(e.target.value)}
           style={{ flex: 1, background: "#0d1520", border: "1px solid #ffffff20", borderRadius: 8, padding: "10px 8px", color: "#f0e6d3", fontSize: 14, outline: "none" }}>
           {currencies.map(c => <option key={c}>{c}</option>)}
@@ -735,20 +769,19 @@ const CurrencyConverter = () => {
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
         <div style={{ flex: 1, height: 1, background: "#ffffff15" }} />
-        <button onClick={() => { const t = from; setFrom(to); setTo(t); }}
-          style={{ background: "#c9a96e20", border: "1px solid #c9a96e40", borderRadius: 20, padding: "4px 12px", color: "#c9a96e", fontSize: 13, cursor: "pointer" }}>⇅ Swap</button>
+        <button onClick={handleSwap} style={{ background: "#c9a96e20", border: "1px solid #c9a96e40", borderRadius: 20, padding: "5px 14px", color: "#c9a96e", fontSize: 14, cursor: "pointer" }}>⇅</button>
         <div style={{ flex: 1, height: 1, background: "#ffffff15" }} />
       </div>
       <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-        <div style={{ flex: 1, background: "#0d1520", border: "1px solid #c9a96e30", borderRadius: 8, padding: "10px 12px", fontSize: 16, fontWeight: 700, color: "#c9a96e" }}>
-          {loading ? "…" : result ? result : "—"}
+        <div style={{ flex: 1, background: "#0d1520", border: "1px solid #c9a96e30", borderRadius: 8, padding: "10px 12px", fontSize: 20, fontWeight: 700, color: "#c9a96e", minHeight: 44, display: "flex", alignItems: "center" }}>
+          {loading ? <span style={{ fontSize: 13, color: "#506070" }}>Loading…</span> : result ? result : <span style={{ fontSize: 13, color: "#506070" }}>Tap 🔄 to load</span>}
         </div>
         <select value={to} onChange={e => setTo(e.target.value)}
           style={{ flex: 1, background: "#0d1520", border: "1px solid #ffffff20", borderRadius: 8, padding: "10px 8px", color: "#f0e6d3", fontSize: 14, outline: "none" }}>
           {currencies.map(c => <option key={c}>{c}</option>)}
         </select>
       </div>
-      {rate && !loading && <div style={{ fontSize: 11, color: "#506070", textAlign: "center" }}>1 {from} = {rate} {to} · Live rate</div>}
+      {rate && !loading && <div style={{ fontSize: 11, color: "#506070", textAlign: "center" }}>1 {from} = {rate.toFixed(4)} {to}</div>}
     </div>
   );
 };
@@ -768,23 +801,30 @@ const UsefulInfoPage = ({ tour, currentLocation }) => {
       {/* Currency Converter */}
       <CurrencyConverter />
 
-      {/* Local Phrases */}
-      {phrases && (
-        <div style={{ background: "#1a2332", borderRadius: 14, padding: 18, border: "1px solid #ffffff10", marginBottom: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-            <span style={{ fontSize: 20 }}>{phrases.flag}</span>
-            <div style={{ fontSize: 13, color: "#c9a96e", fontWeight: 600 }}>{phrases.label} — Useful Phrases</div>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {phrases.items.map((p, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: i < phrases.items.length - 1 ? "1px solid #ffffff08" : "none" }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "#f0e6d3" }}>{p.phrase}</div>
-                <div style={{ fontSize: 13, color: "#7080a0", textAlign: "right", maxWidth: "55%" }}>{p.meaning}</div>
+      {/* Local Phrases — show all regions, highlight current */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 12, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600, marginBottom: 12 }}>Local Phrases</div>
+        {Object.entries(PHRASES).map(([key, lang]) => {
+          const isCurrent = region === key;
+          return (
+            <div key={key} style={{ background: "#1a2332", borderRadius: 14, padding: 16, border: `1px solid ${isCurrent ? "#c9a96e40" : "#ffffff10"}`, marginBottom: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <span style={{ fontSize: 18 }}>{lang.flag}</span>
+                <div style={{ fontSize: 13, color: isCurrent ? "#c9a96e" : "#8090a0", fontWeight: 600 }}>{lang.label}</div>
+                {isCurrent && <div style={{ marginLeft: "auto", background: "#c9a96e20", border: "1px solid #c9a96e40", borderRadius: 20, padding: "2px 8px", fontSize: 10, color: "#c9a96e" }}>TODAY'S REGION</div>}
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {lang.items.map((p, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: i < lang.items.length - 1 ? "1px solid #ffffff08" : "none" }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: "#f0e6d3" }}>{p.phrase}</div>
+                    <div style={{ fontSize: 12, color: "#7080a0", textAlign: "right", maxWidth: "55%" }}>{p.meaning}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
       {/* Guide Notes */}
       {notes ? (
@@ -840,8 +880,16 @@ const EmergencyPage = () => {
       const queries = FACILITY_TYPES.map(t =>
         `node[${t.query}](around:${radius},${lat},${lng});way[${t.query}](around:${radius},${lat},${lng});`
       ).join('');
-      const query = `[out:json][timeout:10];(${queries});out center 1 each;`;
-      const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
+      const query = `[out:json][timeout:15];(${queries});out center;`;
+      const endpoints = [
+        'https://overpass.kumi.systems/api/interpreter',
+        'https://overpass-api.de/api/interpreter',
+      ];
+      let res = null;
+      for (const ep of endpoints) {
+        try { res = await fetch(`${ep}?data=${encodeURIComponent(query)}`); if (res.ok) break; } catch (e) { continue; }
+      }
+      if (!res || !res.ok) throw new Error('Could not reach Overpass API');
       const data = await res.json();
 
       const results = [];

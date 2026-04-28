@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 const supabase = createClient(
   "https://pukdpnkgsyewvbswoqyo.supabase.co",
@@ -1054,6 +1055,7 @@ export default function App() {
         {view === "guide" && isGuide && <GuideDashboard tours={tours} onLogout={() => { setIsGuide(false); setView("login"); }} onRefresh={fetchTours} onViewTour={handleViewTour} />}
         {view === "guest" && liveTour && <GuestView tour={liveTour} onLogout={() => setView("login")} isGuide={isGuide} startPage={guestStartPage} isOffline={isOffline} />}
       </div>
+      <SpeedInsights />
     </>
   );
 }

@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 const supabase = createClient(
   "https://pukdpnkgsyewvbswoqyo.supabase.co",
@@ -650,6 +651,7 @@ export default function MenuOrder() {
       <div style={{ maxWidth: 480, margin: "0 auto" }}>
         {!unlocked ? <PinEntry onUnlock={() => setUnlocked(true)} /> : <GuideDashboard menus={menus} onRefresh={fetchMenus} onLogout={() => setUnlocked(false)} />}
       </div>
+      <SpeedInsights />
     </>
   );
 }

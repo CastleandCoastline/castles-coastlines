@@ -1,8 +1,8 @@
-import { inject } from '@vercel/analytics';
-inject();
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { inject } from '@vercel/analytics';
+inject();
 
 const supabase = createClient(
   "https://pukdpnkgsyewvbswoqyo.supabase.co",

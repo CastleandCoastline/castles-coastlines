@@ -1,4 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
+import { inject } from '@vercel/analytics';
+inject();
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 

@@ -866,47 +866,6 @@ const EmergencyPage = () => {
     { key: "doctors", label: "GP / Doctor", icon: "👨‍⚕️", search: "GP+doctor" },
   ];
 
-  const findFacilities = async (lat, lng) => {
-    setLoading(true); setError(""); setFacilities([]);
-    try {
-      const radius = 10000;
-      const queries = FACILITY_TYPES.map(t =>
-        `node[${t.query}](around:${radius},${lat},${lng});way[${t.query}](around:${radius},${lat},${lng});`
-      ).join('');
-      const query = `[out:json][timeout:15];(${queries});out center;`;
-      const res = await fetch(`https://overpass.kumi.systems/api/interpreter?data=${encodeURIComponent(query)}`);
-      const data = await res.json();
-
-      const results = [];
-      FACILITY_TYPES.forEach(type => {
-        const amenityKey = type.query.split('=')[1];
-        const typeElements = data.elements.filter(e => e.tags?.amenity === amenityKey);
-        if (typeElements.length > 0) {
-          const nearest = typeElements.map(e => {
-            const eLat = e.lat || e.center?.lat;
-            const eLng = e.lon || e.center?.lon;
-            return { ...e, distance: eLat ? parseFloat(getDistance(lat, lng, eLat, eLng)) : 999, distanceStr: eLat ? getDistance(lat, lng, eLat, eLng) : "Unknown", lat: eLat, lng: eLng };
-          }).sort((a, b) => a.distance - b.distance)[0];
-          if (nearest) {
-            results.push({
-              type: type.key, label: type.label, icon: type.icon,
-              name: nearest.tags?.name || type.label,
-              address: [nearest.tags?.['addr:street'], nearest.tags?.['addr:city']].filter(Boolean).join(', ') || 'See map for directions',
-              distance: nearest.distanceStr,
-              phone: nearest.tags?.phone || nearest.tags?.['contact:phone'] || null,
-              lat: nearest.lat, lng: nearest.lng,
-            });
-          }
-        }
-      });
-      setFacilities(results);
-      if (results.length === 0) setError("No facilities found nearby. Try moving to a different location.");
-    } catch (e) {
-      setError("Could not load nearby facilities. Please check your connection.");
-    }
-    setLoading(false);
-  };
-
   const requestLocation = () => {
     setLoading(true); setError("");
     navigator.geolocation.getCurrentPosition(
@@ -991,10 +950,10 @@ const EmergencyPage = () => {
                   <div style={{ fontSize: 15, fontWeight: 600, color: "#f0e6d3", marginBottom: 2 }}>{f.label}</div>
                   <div style={{ fontSize: 12, color: "#506070" }}>Opens Google Maps near your location</div>
                 </div>
-                <button onClick={() => openGoogleMapsSearch(f.search)}
-                  style={{ background: "linear-gradient(135deg,#c9a96e,#a07840)", border: "none", borderRadius: 10, padding: "8px 14px", color: "#1a1a2e", fontWeight: 700, fontSize: 13, cursor: "pointer", flexShrink: 0 }}>
+                <a href={`https://www.google.com/maps/search/${f.search}/@${location.lat},${location.lng},14z`} target="_blank" rel="noopener noreferrer"
+                  style={{ background: "linear-gradient(135deg,#c9a96e,#a07840)", border: "none", borderRadius: 10, padding: "8px 14px", color: "#1a1a2e", fontWeight: 700, fontSize: 13, cursor: "pointer", flexShrink: 0, textDecoration: "none" }}>
                   Find →
-                </button>
+                </a>
               </div>
             ))}
           </div>

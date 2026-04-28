@@ -66,10 +66,6 @@ async function deleteAllOrders(menuId) {
   await supabase.from("menu_orders").delete().eq("menu_id", menuId);
 }
 
-async function setMenuActive(menuId, active) {
-  await supabase.from("menus").update({ active }).eq("id", menuId);
-}
-
 // ── PIN Entry ─────────────────────────────────────────────────────────────────
 const PinEntry = ({ onUnlock }) => {
   const [pin, setPin] = useState(""); const [error, setError] = useState(""); const [shake, setShake] = useState(false);

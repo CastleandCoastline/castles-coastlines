@@ -653,6 +653,12 @@ const GuestView = ({ tour, onLogout, isGuide, startPage }) => {
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(160deg,#0d1520 0%,#1a2332 50%,#0d1520 100%)", fontFamily: "'Lato',sans-serif", color: "#f0e6d3", display: "flex", flexDirection: "column" }}>
       <AnnouncementBanner text={tour.announcement} />
+      {isOffline && (
+        <div style={{ background: "#2a3a2a", borderBottom: "1px solid #4a6a4a", padding: "8px 20px", display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 14 }}>📵</span>
+          <span style={{ fontSize: 12, color: "#8aba8a" }}>Offline — showing saved itinerary. Connect to see latest updates.</span>
+        </div>
+      )}
       <div style={{ background: "linear-gradient(180deg,#0a0f1a 0%,transparent 100%)", padding: "20px 24px 14px", borderBottom: "1px solid #ffffff10" }}>
         <button onClick={onLogout} style={{ background: "none", border: "none", color: "#506070", cursor: "pointer", fontSize: 12, marginBottom: 8, padding: 0 }}>← Change tour</button>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
@@ -953,11 +959,39 @@ export default function App() {
   const [guestStartPage, setGuestStartPage] = useState("itinerary");
   const [isGuide, setIsGuide] = useState(false);
 
+  const [isOffline, setIsOffline] = useState(false);
+
   const fetchTours = async () => {
-    try { const data = await loadAllTours(); setTours(data); }
-    catch (e) { console.error("Failed to load tours:", e); }
+    try {
+      const data = await loadAllTours();
+      setTours(data);
+      setIsOffline(false);
+      // Save to device for offline use
+      localStorage.setItem('cc_tours_cache', JSON.stringify(data));
+      localStorage.setItem('cc_tours_cache_time', new Date().toISOString());
+    } catch (e) {
+      console.error("Failed to load tours:", e);
+      // Try loading from device cache
+      const cached = localStorage.getItem('cc_tours_cache');
+      if (cached) {
+        setTours(JSON.parse(cached));
+        setIsOffline(true);
+      }
+    }
     setLoading(false);
   };
+
+  // Listen for online/offline events
+  useEffect(() => {
+    const goOnline = () => { setIsOffline(false); fetchTours(); };
+    const goOffline = () => setIsOffline(true);
+    window.addEventListener('online', goOnline);
+    window.addEventListener('offline', goOffline);
+    return () => {
+      window.removeEventListener('online', goOnline);
+      window.removeEventListener('offline', goOffline);
+    };
+  }, []);
 
   useEffect(() => {
     if (!window.L) {
@@ -1007,9 +1041,18 @@ export default function App() {
         textarea, input { font-family: 'Lato', sans-serif; }
       `}</style>
       <div style={{ maxWidth: 480, margin: "0 auto" }}>
-        {view === "login" && <GuestLogin tours={tours} onUnlock={(tour) => { setGuestTourId(tour.id); setGuestStartPage("itinerary"); setView("guest"); }} onGuideLogin={() => { setIsGuide(true); setView("guide"); }} />}
+        {view === "login" && (
+          <>
+            {isOffline && (
+              <div style={{ background: "#2a3a2a", padding: "10px 20px", textAlign: "center", fontSize: 12, color: "#8aba8a" }}>
+                📵 You're offline — using saved tour data
+              </div>
+            )}
+            <GuestLogin tours={tours} onUnlock={(tour) => { setGuestTourId(tour.id); setGuestStartPage("itinerary"); setView("guest"); }} onGuideLogin={() => { setIsGuide(true); setView("guide"); }} />
+          </>
+        )}
         {view === "guide" && isGuide && <GuideDashboard tours={tours} onLogout={() => { setIsGuide(false); setView("login"); }} onRefresh={fetchTours} onViewTour={handleViewTour} />}
-        {view === "guest" && liveTour && <GuestView tour={liveTour} onLogout={() => setView("login")} isGuide={isGuide} startPage={guestStartPage} />}
+        {view === "guest" && liveTour && <GuestView tour={liveTour} onLogout={() => setView("login")} isGuide={isGuide} startPage={guestStartPage} isOffline={isOffline} />}
       </div>
     </>
   );

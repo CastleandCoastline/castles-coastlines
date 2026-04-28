@@ -601,7 +601,7 @@ const AnnouncementBanner = ({ text }) => {
 
 // ── Guest Nav ─────────────────────────────────────────────────────────────────
 const GuestNav = ({ active, onChange }) => {
-  const tabs = [{ id: "itinerary", icon: "🗓️", label: "Itinerary" }, { id: "coach", icon: "🚌", label: "Seats" }, { id: "photos", icon: "📸", label: "Photos" }, { id: "notes", icon: "📝", label: "Notes" }, { id: "contact", icon: "📞", label: "Contact" }];
+  const tabs = [{ id: "itinerary", icon: "🗓️", label: "Itinerary" }, { id: "coach", icon: "🚌", label: "Seats" }, { id: "photos", icon: "📸", label: "Photos" }, { id: "info", icon: "💡", label: "Info" }, { id: "emergency", icon: "🚑", label: "Emergency" }, { id: "contact", icon: "📞", label: "Contact" }];
   return (
     <div style={{ display: "flex", borderTop: "1px solid #ffffff10", background: "#0d1520", position: "sticky", bottom: 0 }}>
       {tabs.map((tab) => (
@@ -631,16 +631,355 @@ const ContactPage = ({ tour }) => {
   );
 };
 
-// ── Notes Page ────────────────────────────────────────────────────────────────
-const NotesPage = ({ tour }) => {
+// ── Local Phrases by region ───────────────────────────────────────────────────
+const PHRASES = {
+  scotland: {
+    label: "Scottish Gaelic & Scots",
+    flag: "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
+    items: [
+      { phrase: "Halò / Hiya", meaning: "Hello" },
+      { phrase: "Tapadh leat", meaning: "Thank you (to one person)" },
+      { phrase: "Màth dha-rìribh", meaning: "Excellent / Really good" },
+      { phrase: "Slàinte mhath", meaning: "Good health (toast)" },
+      { phrase: "Dinnae fash yersel", meaning: "Don't worry about it" },
+      { phrase: "Braw", meaning: "Brilliant / Lovely" },
+      { phrase: "Och aye", meaning: "Oh yes" },
+      { phrase: "Loch", meaning: "Lake" },
+      { phrase: "Glen", meaning: "Valley" },
+      { phrase: "Ben", meaning: "Mountain peak" },
+    ],
+  },
+  ireland: {
+    label: "Irish & Hiberno-English",
+    flag: "🇮🇪",
+    items: [
+      { phrase: "Dia dhuit", meaning: "Hello (lit. God be with you)" },
+      { phrase: "Go raibh maith agat", meaning: "Thank you" },
+      { phrase: "Sláinte", meaning: "Cheers / Good health" },
+      { phrase: "Grand", meaning: "Fine / Good (used constantly)" },
+      { phrase: "Craic", meaning: "Fun, good times, chat" },
+      { phrase: "Fierce", meaning: "Very (e.g. fierce cold)" },
+      { phrase: "Gobsmacked", meaning: "Astonished" },
+      { phrase: "The Jacks", meaning: "The toilet" },
+      { phrase: "Fáilte", meaning: "Welcome" },
+      { phrase: "Céad míle fáilte", meaning: "A hundred thousand welcomes" },
+    ],
+  },
+  wales: {
+    label: "Welsh",
+    flag: "🏴󠁧󠁢󠁷󠁬󠁳󠁿",
+    items: [
+      { phrase: "Bore da", meaning: "Good morning" },
+      { phrase: "Diolch", meaning: "Thank you" },
+      { phrase: "Iechyd da", meaning: "Good health (toast)" },
+      { phrase: "Croeso", meaning: "Welcome" },
+      { phrase: "Cwtch", meaning: "A hug / cosy space" },
+      { phrase: "Lush", meaning: "Lovely / great" },
+      { phrase: "Tidy", meaning: "Good / sorted" },
+    ],
+  },
+  england: {
+    label: "British English",
+    flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+    items: [
+      { phrase: "Cheers", meaning: "Thanks / goodbye" },
+      { phrase: "Brilliant", meaning: "Excellent" },
+      { phrase: "Quite", meaning: "Rather / somewhat" },
+      { phrase: "Gutted", meaning: "Very disappointed" },
+      { phrase: "Chuffed", meaning: "Very pleased" },
+      { phrase: "Knackered", meaning: "Exhausted" },
+      { phrase: "Blimey", meaning: "Expression of surprise" },
+    ],
+  },
+};
+
+const detectRegion = (location) => {
+  if (!location) return null;
+  const l = location.toLowerCase();
+  if (l.includes("scotland") || l.includes("edinburgh") || l.includes("glasgow") || l.includes("highland") || l.includes("inverness") || l.includes("loch") || l.includes("aberdeen") || l.includes("stirling") || l.includes("skye")) return "scotland";
+  if (l.includes("ireland") || l.includes("dublin") || l.includes("cork") || l.includes("galway") || l.includes("kerry") || l.includes("belfast") || l.includes("limerick") || l.includes("wicklow") || l.includes("donegal")) return "ireland";
+  if (l.includes("wales") || l.includes("cardiff") || l.includes("swansea") || l.includes("snowdon")) return "wales";
+  return "england";
+};
+
+// ── Currency Converter ─────────────────────────────────────────────────────────
+const CurrencyConverter = () => {
+  const [amount, setAmount] = useState("1");
+  const [from, setFrom] = useState("GBP");
+  const [to, setTo] = useState("EUR");
+  const [rate, setRate] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const currencies = ["GBP", "EUR", "USD", "CAD", "AUD", "JPY", "CHF", "SEK", "NOK", "NZD"];
+
+  useEffect(() => {
+    if (from === to) { setRate(1); return; }
+    setLoading(true);
+    fetch(`https://api.frankfurter.app/latest?from=${from}&to=${to}`)
+      .then(r => r.json())
+      .then(d => { setRate(d.rates[to]); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [from, to]);
+
+  const result = rate && amount ? (parseFloat(amount) * rate).toFixed(2) : null;
+
+  return (
+    <div style={{ background: "#1a2332", borderRadius: 14, padding: 18, border: "1px solid #ffffff10", marginBottom: 20 }}>
+      <div style={{ fontSize: 13, color: "#c9a96e", fontWeight: 600, marginBottom: 14 }}>💱 Currency Converter</div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+        <input value={amount} onChange={e => setAmount(e.target.value)} type="number" placeholder="Amount"
+          style={{ flex: 1, background: "#0d1520", border: "1px solid #ffffff20", borderRadius: 8, padding: "10px 12px", color: "#f0e6d3", fontSize: 16, outline: "none" }} />
+        <select value={from} onChange={e => setFrom(e.target.value)}
+          style={{ flex: 1, background: "#0d1520", border: "1px solid #ffffff20", borderRadius: 8, padding: "10px 8px", color: "#f0e6d3", fontSize: 14, outline: "none" }}>
+          {currencies.map(c => <option key={c}>{c}</option>)}
+        </select>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+        <div style={{ flex: 1, height: 1, background: "#ffffff15" }} />
+        <button onClick={() => { const t = from; setFrom(to); setTo(t); }}
+          style={{ background: "#c9a96e20", border: "1px solid #c9a96e40", borderRadius: 20, padding: "4px 12px", color: "#c9a96e", fontSize: 13, cursor: "pointer" }}>⇅ Swap</button>
+        <div style={{ flex: 1, height: 1, background: "#ffffff15" }} />
+      </div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+        <div style={{ flex: 1, background: "#0d1520", border: "1px solid #c9a96e30", borderRadius: 8, padding: "10px 12px", fontSize: 16, fontWeight: 700, color: "#c9a96e" }}>
+          {loading ? "…" : result ? result : "—"}
+        </div>
+        <select value={to} onChange={e => setTo(e.target.value)}
+          style={{ flex: 1, background: "#0d1520", border: "1px solid #ffffff20", borderRadius: 8, padding: "10px 8px", color: "#f0e6d3", fontSize: 14, outline: "none" }}>
+          {currencies.map(c => <option key={c}>{c}</option>)}
+        </select>
+      </div>
+      {rate && !loading && <div style={{ fontSize: 11, color: "#506070", textAlign: "center" }}>1 {from} = {rate} {to} · Live rate</div>}
+    </div>
+  );
+};
+
+// ── Useful Info Page ───────────────────────────────────────────────────────────
+const UsefulInfoPage = ({ tour, currentLocation }) => {
   const notes = tour.notes || "";
-  const paragraphs = notes.split("\n").filter((p) => p.trim());
+  const paragraphs = notes.split("\n").filter(p => p.trim());
+  const region = detectRegion(currentLocation || "");
+  const phrases = region ? PHRASES[region] : null;
+
   return (
     <div style={{ padding: 24 }}>
-      <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Tour Notes</div>
-      <div style={{ color: "#7080a0", fontSize: 13, marginBottom: 24 }}>Tips, recommendations & important info</div>
-      {!notes ? <div style={{ textAlign: "center", padding: "40px 20px", color: "#405060", border: "1px dashed #ffffff15", borderRadius: 16 }}><div style={{ fontSize: 36, marginBottom: 10 }}>📝</div><div>No notes yet — check back soon!</div></div>
-        : <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>{paragraphs.map((para, i) => (<div key={i} style={{ background: "#1a2332", borderRadius: 14, padding: "16px 18px", border: "1px solid #ffffff10", display: "flex", gap: 12, alignItems: "flex-start" }}><div style={{ width: 6, height: 6, borderRadius: "50%", background: "#c9a96e", marginTop: 6, flexShrink: 0 }} /><div style={{ fontSize: 14, color: "#d0c0b0", lineHeight: 1.7 }}>{para}</div></div>))}</div>}
+      <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Useful Info</div>
+      <div style={{ color: "#7080a0", fontSize: 13, marginBottom: 24 }}>Tips, currency & local phrases</div>
+
+      {/* Currency Converter */}
+      <CurrencyConverter />
+
+      {/* Local Phrases */}
+      {phrases && (
+        <div style={{ background: "#1a2332", borderRadius: 14, padding: 18, border: "1px solid #ffffff10", marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+            <span style={{ fontSize: 20 }}>{phrases.flag}</span>
+            <div style={{ fontSize: 13, color: "#c9a96e", fontWeight: 600 }}>{phrases.label} — Useful Phrases</div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {phrases.items.map((p, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: i < phrases.items.length - 1 ? "1px solid #ffffff08" : "none" }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "#f0e6d3" }}>{p.phrase}</div>
+                <div style={{ fontSize: 13, color: "#7080a0", textAlign: "right", maxWidth: "55%" }}>{p.meaning}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Guide Notes */}
+      {notes ? (
+        <div>
+          <div style={{ fontSize: 12, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", marginBottom: 12, fontWeight: 600 }}>Guide Notes</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {paragraphs.map((para, i) => (
+              <div key={i} style={{ background: "#1a2332", borderRadius: 14, padding: "14px 16px", border: "1px solid #ffffff10", display: "flex", gap: 12, alignItems: "flex-start" }}>
+                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#c9a96e", marginTop: 6, flexShrink: 0 }} />
+                <div style={{ fontSize: 14, color: "#d0c0b0", lineHeight: 1.7 }}>{para}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div style={{ textAlign: "center", padding: "30px 20px", color: "#405060", border: "1px dashed #ffffff15", borderRadius: 16 }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>📝</div>
+          <div>No guide notes yet — check back soon!</div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── Emergency Page ─────────────────────────────────────────────────────────────
+const EmergencyPage = () => {
+  const [location, setLocation] = useState(null);
+  const [facilities, setFacilities] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [permissionDenied, setPermissionDenied] = useState(false);
+
+  const FACILITY_TYPES = [
+    { key: "hospital", label: "Hospital / A&E", icon: "🏥", query: 'amenity=hospital' },
+    { key: "pharmacy", label: "Pharmacy", icon: "💊", query: 'amenity=pharmacy' },
+    { key: "police", label: "Police Station", icon: "🚓", query: 'amenity=police' },
+    { key: "doctors", label: "GP / Doctor", icon: "👨‍⚕️", query: 'amenity=doctors' },
+  ];
+
+  const getDistance = (lat1, lng1, lat2, lng2) => {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLng/2)**2;
+    const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return dist < 1 ? `${Math.round(dist * 1000)}m` : `${dist.toFixed(1)}km`;
+  };
+
+  const findFacilities = async (lat, lng) => {
+    setLoading(true); setError(""); setFacilities([]);
+    try {
+      const radius = 10000;
+      const queries = FACILITY_TYPES.map(t =>
+        `node[${t.query}](around:${radius},${lat},${lng});way[${t.query}](around:${radius},${lat},${lng});`
+      ).join('');
+      const query = `[out:json][timeout:10];(${queries});out center 1 each;`;
+      const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
+      const data = await res.json();
+
+      const results = [];
+      FACILITY_TYPES.forEach(type => {
+        const matching = data.elements.filter(e => e.tags?.amenity === type.key.replace('doctors','doctors'));
+        const amenityKey = type.query.split('=')[1];
+        const typeElements = data.elements.filter(e => e.tags?.amenity === amenityKey);
+        if (typeElements.length > 0) {
+          const nearest = typeElements.map(e => {
+            const eLat = e.lat || e.center?.lat;
+            const eLng = e.lon || e.center?.lon;
+            return { ...e, distance: eLat ? parseFloat(getDistance(lat, lng, eLat, eLng)) : 999, distanceStr: eLat ? getDistance(lat, lng, eLat, eLng) : "Unknown", lat: eLat, lng: eLng };
+          }).sort((a, b) => a.distance - b.distance)[0];
+          if (nearest) {
+            results.push({
+              type: type.key, label: type.label, icon: type.icon,
+              name: nearest.tags?.name || type.label,
+              address: [nearest.tags?.['addr:street'], nearest.tags?.['addr:city']].filter(Boolean).join(', ') || 'See map for directions',
+              distance: nearest.distanceStr,
+              phone: nearest.tags?.phone || nearest.tags?.['contact:phone'] || null,
+              lat: nearest.lat, lng: nearest.lng,
+            });
+          }
+        }
+      });
+      setFacilities(results);
+      if (results.length === 0) setError("No facilities found nearby. Try moving to a different location.");
+    } catch (e) {
+      setError("Could not load nearby facilities. Please check your connection.");
+    }
+    setLoading(false);
+  };
+
+  const requestLocation = () => {
+    setLoading(true); setError("");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setLocation({ lat: latitude, lng: longitude });
+        findFacilities(latitude, longitude);
+      },
+      (err) => {
+        setLoading(false);
+        if (err.code === 1) setPermissionDenied(true);
+        else setError("Could not get your location. Please try again.");
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  return (
+    <div style={{ padding: 24 }}>
+      <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Emergency</div>
+      <div style={{ color: "#7080a0", fontSize: 13, marginBottom: 20 }}>Nearest hospitals, pharmacies & emergency services</div>
+
+      {/* Always visible emergency numbers */}
+      <div style={{ background: "#2a1a1a", borderRadius: 14, padding: 16, border: "1px solid #ff444430", marginBottom: 20 }}>
+        <div style={{ fontSize: 12, color: "#ff6666", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600, marginBottom: 12 }}>Emergency Numbers</div>
+        {[["🚨 999", "UK Emergency — Police, Fire, Ambulance"], ["🚨 112", "EU Emergency — works across Europe"], ["🏥 111", "NHS Non-Emergency Medical Advice (UK)"]].map(([num, desc]) => (
+          <div key={num} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "#f0e6d3" }}>{num}</div>
+              <div style={{ fontSize: 11, color: "#7080a0" }}>{desc}</div>
+            </div>
+            <a href={`tel:${num.replace(/[^0-9]/g, '')}`}
+              style={{ background: "#ff444420", border: "1px solid #ff444440", borderRadius: 8, padding: "6px 14px", color: "#ff6666", fontWeight: 700, fontSize: 13, textDecoration: "none" }}>
+              Call
+            </a>
+          </div>
+        ))}
+      </div>
+
+      {/* Location-based facilities */}
+      {!location && !loading && (
+        <div style={{ textAlign: "center", padding: "30px 20px", background: "#1a2332", borderRadius: 16, border: "1px solid #ffffff10" }}>
+          <div style={{ fontSize: 36, marginBottom: 12 }}>📍</div>
+          <div style={{ color: "#f0e6d3", fontSize: 15, fontWeight: 600, marginBottom: 8 }}>Find Nearby Facilities</div>
+          <div style={{ color: "#607080", fontSize: 13, marginBottom: 20, lineHeight: 1.6 }}>Tap below to find the nearest hospital, pharmacy, police station and GP based on your current location</div>
+          {permissionDenied ? (
+            <div style={{ color: "#ff6666", fontSize: 13 }}>Location permission denied. Please enable location access in your phone settings and try again.</div>
+          ) : (
+            <button onClick={requestLocation} style={{ padding: "12px 24px", background: "linear-gradient(135deg,#c9a96e,#a07840)", borderRadius: 12, border: "none", color: "#1a1a2e", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>
+              📍 Find Nearest Facilities
+            </button>
+          )}
+        </div>
+      )}
+
+      {loading && (
+        <div style={{ textAlign: "center", padding: "40px 20px", color: "#607080" }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>🔍</div>
+          <div>Finding nearby facilities…</div>
+        </div>
+      )}
+
+      {error && (
+        <div style={{ background: "#2a1a1a", borderRadius: 12, padding: 16, border: "1px solid #ff444430", color: "#ff8888", fontSize: 13, marginBottom: 16, textAlign: "center" }}>
+          {error}
+          <button onClick={requestLocation} style={{ display: "block", margin: "10px auto 0", padding: "8px 16px", background: "#ff444420", border: "1px solid #ff444440", borderRadius: 8, color: "#ff6666", fontSize: 12, cursor: "pointer" }}>Try Again</button>
+        </div>
+      )}
+
+      {facilities.length > 0 && (
+        <>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <div style={{ fontSize: 12, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600 }}>Nearest Facilities</div>
+            <button onClick={requestLocation} style={{ background: "none", border: "none", color: "#607080", fontSize: 12, cursor: "pointer" }}>🔄 Refresh</button>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {facilities.map((f, i) => (
+              <div key={i} style={{ background: "#1a2332", borderRadius: 14, padding: "14px 16px", border: "1px solid #ffffff10" }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                  <div style={{ fontSize: 28, flexShrink: 0 }}>{f.icon}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 11, color: "#c9a96e", textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>{f.label}</div>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: "#f0e6d3", marginBottom: 2 }}>{f.name}</div>
+                    <div style={{ fontSize: 12, color: "#607080", marginBottom: 6 }}>{f.address}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ background: "#c9a96e20", border: "1px solid #c9a96e30", borderRadius: 20, padding: "2px 10px", fontSize: 11, color: "#c9a96e" }}>📍 {f.distance}</span>
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                  {f.phone && (
+                    <a href={`tel:${f.phone}`} style={{ flex: 1, padding: "8px", background: "#c9a96e20", border: "1px solid #c9a96e40", borderRadius: 8, color: "#c9a96e", fontWeight: 700, fontSize: 13, textDecoration: "none", textAlign: "center" }}>
+                      📞 Call
+                    </a>
+                  )}
+                  <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.name)}&center=${f.lat},${f.lng}`} target="_blank" rel="noopener noreferrer"
+                    style={{ flex: 1, padding: "8px", background: "#1a3a2a", border: "1px solid #2a6a4a", borderRadius: 8, color: "#6abf8a", fontWeight: 700, fontSize: 13, textDecoration: "none", textAlign: "center" }}>
+                    🗺️ Directions
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 };
@@ -650,6 +989,7 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
   const [activeDay, setActiveDay] = useState(0);
   const [activePage, setActivePage] = useState(startPage || "itinerary");
   const day = tour.days[activeDay];
+  const currentLocation = day?.location || "";
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(160deg,#0d1520 0%,#1a2332 50%,#0d1520 100%)", fontFamily: "'Lato',sans-serif", color: "#f0e6d3", display: "flex", flexDirection: "column" }}>
       <AnnouncementBanner text={tour.announcement} />
@@ -711,7 +1051,8 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
         )}
         {activePage === "coach" && <CoachSeatingPlan tour={tour} guestName={null} isGuide={isGuide} />}
         {activePage === "photos" && <PhotoLibrary tour={tour} isGuide={isGuide} />}
-        {activePage === "notes" && <NotesPage tour={tour} />}
+        {activePage === "info" && <UsefulInfoPage tour={tour} currentLocation={currentLocation} />}
+        {activePage === "emergency" && <EmergencyPage />}
         {activePage === "contact" && <ContactPage tour={tour} />}
       </div>
       <GuestNav active={activePage} onChange={setActivePage} />

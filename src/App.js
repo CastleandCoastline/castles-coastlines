@@ -876,6 +876,11 @@ const GuideDashboard = ({ tours, onLogout, onRefresh, onViewTour }) => {
           <button onClick={() => setShowSeating(true)} style={{ padding: "13px", background: "#1a2332", border: "1px solid #c9a96e40", borderRadius: 12, color: "#c9a96e", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>Seating Plan 🚌</button>
           <button onClick={() => onViewTour(tour)} style={{ padding: "13px", background: "#1a2332", border: "1px solid #ffffff15", borderRadius: 12, color: "#8090a0", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Guest View ↗</button>
         </div>
+        <button onClick={() => window.open('/menu', '_blank')} style={{ width: "100%", padding: "13px", background: "#1a2332", border: "1px solid #c9a96e40", borderRadius: 12, color: "#c9a96e", fontWeight: 700, fontSize: 14, cursor: "pointer", marginTop: -6, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <span>🍽️</span><span>Menu Orders</span>
+        </button>
+        <div style={{ display: "none" }}>
+        </div>
 
         <div style={{ background: "#1a2332", borderRadius: 16, padding: 20, marginBottom: 16, border: "1px solid #c9a96e20" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>

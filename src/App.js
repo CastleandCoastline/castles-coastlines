@@ -27,10 +27,17 @@ const WMO_CODES = {
 };
 
 async function geocodeLocation(location) {
-  const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=en&format=json`);
+  // Fetch more results and prioritise UK and Ireland
+  const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=10&language=en&format=json`);
   const data = await res.json();
   if (!data.results?.length) return null;
-  return { lat: data.results[0].latitude, lng: data.results[0].longitude, name: data.results[0].name };
+
+  // Priority countries — UK and Ireland first
+  const priority = ['GB', 'IE'];
+  const prioritised = data.results.find(r => priority.includes(r.country_code));
+  const best = prioritised || data.results[0];
+
+  return { lat: best.latitude, lng: best.longitude, name: best.name };
 }
 
 async function fetchWeather(lat, lng) {

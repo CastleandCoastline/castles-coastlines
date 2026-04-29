@@ -975,7 +975,7 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
   const [activeDay, setActiveDay] = useState(0);
   const [activePage, setActivePage] = useState(startPage || "itinerary");
   const day = tour.days[activeDay];
-  const currentLocation = day?.location || "";
+  const currentLocation = (day?.location || "").split('-')[0].split('–')[0].trim();
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(160deg,#0d1520 0%,#1a2332 50%,#0d1520 100%)", fontFamily: "'Lato',sans-serif", color: "#f0e6d3", display: "flex", flexDirection: "column" }}>
       <AnnouncementBanner text={tour.announcement} />
@@ -1007,7 +1007,7 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
                   <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, marginBottom: 4 }}>{day.title}</div>
                   <div style={{ color: "#7080a0", fontSize: 13, marginBottom: 16 }}>📍 {day.location}</div>
                   {/* Weather for this day's location */}
-                  {day.location && <WeatherWidget location={day.location} />}
+                  {day.location && <WeatherWidget location={day.location.split('-')[0].split('–')[0].trim()} />}
                   <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, color: "#c9a96e", marginBottom: 14 }}>Today's Schedule</div>
                   {day.schedule.map((item, i) => (
                     <div key={i} style={{ display: "flex", gap: 16, paddingBottom: 20 }}>

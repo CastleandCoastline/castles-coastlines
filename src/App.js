@@ -493,7 +493,7 @@ const LeafletMap = ({ attractions }) => {
 const QRModal = ({ tour, appUrl, onClose }) => {
   const canvasRef = useRef(null);
   const [qrReady, setQrReady] = useState(false);
-  const guestUrl = `${appUrl}?tour=${tour.id}`;
+  const guestUrl = `https://castleandcoastline.co.uk?tour=${tour.id}`;
   useEffect(() => {
     if (!window.QRCode) { const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"; s.onload = () => setQrReady(true); document.head.appendChild(s); }
     else setQrReady(true);

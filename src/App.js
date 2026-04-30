@@ -1153,7 +1153,17 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
                   {day.location && <WeatherWidget location={day.location.split('-')[0].split('–')[0].trim()} />}
                   <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, color: "#c9a96e", marginBottom: 14 }}>Today's Schedule</div>
                   {day.schedule.map((item, i) => {
+                    const isCurrentDay = activeDay === calcDayIndex();
+                    const allDone = day.schedule.every(s => {
+                      if (!s.time) return true;
+                      const p = parseTimeMins(s.time);
+                      if (!p) return true;
+                      const nowM = new Date().getHours() * 60 + new Date().getMinutes();
+                      const checkMins = p.isRange && p.end ? p.end : p.start;
+                      return checkMins < nowM;
+                    });
                     const isPast = (() => {
+                      if (!isCurrentDay || allDone) return false;
                       if (!item.time) return false;
                       const parsed = parseTimeMins(item.time);
                       if (!parsed) return false;
@@ -1175,7 +1185,7 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
                         return p && p.start > nowM;
                       });
                       return nextItem && nextItem.time === item.time && nextItem.label === item.label;
-                    })();
+                    })() && isCurrentDay && !allDone;
                     return (
                     <div key={i} style={{ display: "flex", gap: 16, paddingBottom: 20, opacity: isPast ? 0.4 : 1, transition: "opacity 0.3s" }}>
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>

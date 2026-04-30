@@ -1008,7 +1008,7 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
             <input
               type="range"
               min={1}
-              max={2}
+              max={3.5}
               step={0.05}
               value={fontScale}
               onChange={e => setFontScale(parseFloat(e.target.value))}

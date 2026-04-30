@@ -1101,7 +1101,6 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
                     })();
                     const isNext = (() => {
                       if (!item.time) return false;
-                      const [h, m] = item.time.split(':').map(Number);
                       const now = new Date();
                       const nowMins = now.getHours() * 60 + now.getMinutes();
                       const nextItem = day.schedule.find(s => {

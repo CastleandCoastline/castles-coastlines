@@ -1155,9 +1155,11 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
                   {day.schedule.map((item, i) => {
                     const isPast = (() => {
                       if (!item.time) return false;
-                      const [h, m] = item.time.split(':').map(Number);
-                      const now = new Date();
-                      return h * 60 + m < now.getHours() * 60 + now.getMinutes();
+                      const parsed = parseTimeMins(item.time);
+                      if (!parsed) return false;
+                      const nowM = new Date().getHours() * 60 + new Date().getMinutes();
+                      const checkMins = parsed.isRange && parsed.end ? parsed.end : parsed.start;
+                      return checkMins !== null && checkMins < nowM;
                     })();
                     const isNext = (() => {
                       if (!item.time) return false;

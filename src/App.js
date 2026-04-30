@@ -981,11 +981,12 @@ const EmergencyPage = () => {
 const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
   const [activeDay, setActiveDay] = useState(0);
   const [activePage, setActivePage] = useState(startPage || "itinerary");
-  const [largeText, setLargeText] = useState(false);
+  const [fontScale, setFontScale] = useState(1);
+  const fs = (size) => Math.round(size * fontScale);
   const day = tour.days[activeDay];
   const currentLocation = (day?.location || "").split('-')[0].split('–')[0].trim();
   return (
-    <div className={largeText ? "large-text" : ""} style={{ minHeight: "100vh", background: "linear-gradient(160deg,#0d1520 0%,#1a2332 50%,#0d1520 100%)", fontFamily: "'Lato',sans-serif", color: "#f0e6d3", display: "flex", flexDirection: "column" }}>
+    <div style={{ minHeight: "100vh", background: "linear-gradient(160deg,#0d1520 0%,#1a2332 50%,#0d1520 100%)", fontFamily: "'Lato',sans-serif", color: "#f0e6d3", display: "flex", flexDirection: "column" }}>
       <AnnouncementBanner text={tour.announcement} />
       {isOffline && (
         <div style={{ background: "#2a3a2a", borderBottom: "1px solid #4a6a4a", padding: "8px 20px", display: "flex", alignItems: "center", gap: 8 }}>
@@ -1002,11 +1003,14 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
         <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700 }}>{tour.name}</div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 3 }}>
           <div style={{ color: "#8090a0", fontSize: 12 }}>{tour.duration}-day tour</div>
-          <button onClick={() => setLargeText(p => !p)}
-            style={{ background: largeText ? "#c9a96e20" : "transparent", border: `1px solid ${largeText ? "#c9a96e40" : "#ffffff20"}`, borderRadius: 8, padding: "3px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-            <span style={{ fontSize: largeText ? 11 : 9, color: largeText ? "#c9a96e" : "#506070" }}>A</span>
-            <span style={{ fontSize: largeText ? 15 : 13, color: largeText ? "#c9a96e" : "#8090a0", fontWeight: 700 }}>A</span>
-          </button>
+          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+            {[1, 1.15, 1.3].map((scale) => (
+              <button key={scale} onClick={() => setFontScale(scale)}
+                style={{ background: fontScale === scale ? "#c9a96e20" : "transparent", border: `1px solid ${fontScale === scale ? "#c9a96e" : "#ffffff20"}`, borderRadius: 6, width: 28, height: 26, cursor: "pointer", color: fontScale === scale ? "#c9a96e" : "#607080", fontSize: scale === 1 ? 10 : scale === 1.15 ? 12 : 14, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                A
+              </button>
+            ))}
+          </div>
         </div>
       </div>
       <div style={{ flex: 1, overflowY: "auto" }}>
@@ -1018,9 +1022,8 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
                   {tour.days.map((d, i) => (<button key={i} onClick={() => setActiveDay(i)} style={{ flexShrink: 0, padding: "7px 14px", borderRadius: 20, border: `1px solid ${activeDay === i ? "#c9a96e" : "#ffffff20"}`, background: activeDay === i ? "#c9a96e" : "transparent", color: activeDay === i ? "#1a1a2e" : "#a0b0c0", fontWeight: activeDay === i ? 700 : 400, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>Day {d.day}</button>))}
                 </div>
                 <div style={{ padding: 24 }}>
-                  <div style={{ fontSize: 11, letterSpacing: 2, color: "#c9a96e", textTransform: "uppercase", marginBottom: 4 }}>Day {day.day}</div>
-                  <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, marginBottom: 4 }}>{day.title}</div>
-                  <div style={{ color: "#7080a0", fontSize: 13, marginBottom: 16 }}>📍 {day.location}</div>
+                  <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, marginBottom: 6 }}>{day.title}</div>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: "#c9a96e", marginBottom: 16 }}>📍 {day.location}</div>
                   {/* Weather for this day's location */}
                   {day.location && <WeatherWidget location={day.location.split('-')[0].split('–')[0].trim()} />}
                   <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, color: "#c9a96e", marginBottom: 14 }}>Today's Schedule</div>
@@ -1032,10 +1035,10 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
                       </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ display: "flex", gap: 10, alignItems: "baseline" }}>
-                          <span style={{ fontSize: 15, fontWeight: 700, color: "#c9a96e" }}>{item.time}</span>
-                          <span style={{ fontSize: 15, color: "#f0e6d3", fontWeight: 500 }}>{item.label}</span>
+                          <span style={{ fontSize: fs(15), fontWeight: 700, color: "#c9a96e" }}>{item.time}</span>
+                          <span style={{ fontSize: fs(15), color: "#f0e6d3", fontWeight: 500 }}>{item.label}</span>
                         </div>
-                        {item.note && <div style={{ fontSize: 13, color: "#6070a0", marginTop: 2 }}>{item.note}</div>}
+                        {item.note && <div style={{ fontSize: fs(13), color: "#6070a0", marginTop: 2 }}>{item.note}</div>}
                       </div>
                     </div>
                   ))}
@@ -1374,7 +1377,8 @@ export default function App() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Lato:wght@300;400;600;700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { width: 100%; height: 100%; }
+        html, body { width: 100%; height: 100%; overflow-x: hidden; }
+        @media (orientation: landscape) { .guest-nav { padding: 4px 2px !important; } }
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: #0d1520; }
         ::-webkit-scrollbar-thumb { background: #c9a96e40; border-radius: 2px; }
@@ -1390,7 +1394,7 @@ export default function App() {
           .guest-nav span:first-child { font-size: 14px !important; }
         }
       `}</style>
-      <div style={{ maxWidth: 600, margin: "0 auto", width: "100%" }}>
+      <div style={{ width: "100%", maxWidth: "100vw", overflowX: "hidden" }}>
         {view === "login" && (
           <>
             {isOffline && (

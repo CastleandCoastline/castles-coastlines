@@ -612,7 +612,7 @@ const AnnouncementBanner = ({ text }) => {
 const GuestNav = ({ active, onChange }) => {
   const tabs = [{ id: "itinerary", icon: "🗓️", label: "Itinerary" }, { id: "coach", icon: "🚌", label: "Seats" }, { id: "photos", icon: "📸", label: "Photos" }, { id: "info", icon: "💡", label: "Info" }, { id: "contact", icon: "📞", label: "Contact" }, { id: "emergency", icon: "🚑", label: "Emergency" }];
   return (
-    <div style={{ display: "flex", borderTop: "1px solid #ffffff10", background: "#0d1520", position: "sticky", bottom: 0 }}>
+    <div className="guest-nav" style={{ display: "flex", borderTop: "1px solid #ffffff10", background: "#0d1520", position: "sticky", bottom: 0 }}>
       {tabs.map((tab) => (
         <button key={tab.id} onClick={() => onChange(tab.id)} style={{ flex: 1, padding: "10px 2px 8px", background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, borderTop: `2px solid ${active === tab.id ? "#c9a96e" : "transparent"}` }}>
           <span style={{ fontSize: 16 }}>{tab.icon}</span>
@@ -981,10 +981,11 @@ const EmergencyPage = () => {
 const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
   const [activeDay, setActiveDay] = useState(0);
   const [activePage, setActivePage] = useState(startPage || "itinerary");
+  const [largeText, setLargeText] = useState(false);
   const day = tour.days[activeDay];
   const currentLocation = (day?.location || "").split('-')[0].split('–')[0].trim();
   return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(160deg,#0d1520 0%,#1a2332 50%,#0d1520 100%)", fontFamily: "'Lato',sans-serif", color: "#f0e6d3", display: "flex", flexDirection: "column" }}>
+    <div className={largeText ? "large-text" : ""} style={{ minHeight: "100vh", background: "linear-gradient(160deg,#0d1520 0%,#1a2332 50%,#0d1520 100%)", fontFamily: "'Lato',sans-serif", color: "#f0e6d3", display: "flex", flexDirection: "column" }}>
       <AnnouncementBanner text={tour.announcement} />
       {isOffline && (
         <div style={{ background: "#2a3a2a", borderBottom: "1px solid #4a6a4a", padding: "8px 20px", display: "flex", alignItems: "center", gap: 8 }}>
@@ -999,7 +1000,14 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
           <div style={{ fontSize: 10, letterSpacing: 3, color: "#c9a96e", textTransform: "uppercase" }}>Castle & Coastline</div>
         </div>
         <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700 }}>{tour.name}</div>
-        <div style={{ color: "#8090a0", fontSize: 12, marginTop: 3 }}>{tour.duration}-day tour</div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 3 }}>
+          <div style={{ color: "#8090a0", fontSize: 12 }}>{tour.duration}-day tour</div>
+          <button onClick={() => setLargeText(p => !p)}
+            style={{ background: largeText ? "#c9a96e20" : "transparent", border: `1px solid ${largeText ? "#c9a96e40" : "#ffffff20"}`, borderRadius: 8, padding: "3px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+            <span style={{ fontSize: largeText ? 11 : 9, color: largeText ? "#c9a96e" : "#506070" }}>A</span>
+            <span style={{ fontSize: largeText ? 15 : 13, color: largeText ? "#c9a96e" : "#8090a0", fontWeight: 700 }}>A</span>
+          </button>
+        </div>
       </div>
       <div style={{ flex: 1, overflowY: "auto" }}>
         {activePage === "itinerary" && (
@@ -1366,6 +1374,7 @@ export default function App() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Lato:wght@300;400;600;700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { width: 100%; height: 100%; }
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: #0d1520; }
         ::-webkit-scrollbar-thumb { background: #c9a96e40; border-radius: 2px; }
@@ -1373,8 +1382,15 @@ export default function App() {
         .leaflet-popup-content-wrapper { background: #1a2332 !important; color: #f0e6d3 !important; border: 1px solid #c9a96e30 !important; border-radius: 10px !important; }
         .leaflet-popup-tip { background: #1a2332 !important; }
         textarea, input { font-family: 'Lato', sans-serif; }
+        .large-text { font-size: 118% !important; }
+        .large-text .sched-time { font-size: 17px !important; }
+        .large-text .sched-label { font-size: 17px !important; }
+        @media (orientation: landscape) {
+          .guest-nav { padding: 6px 2px 4px !important; }
+          .guest-nav span:first-child { font-size: 14px !important; }
+        }
       `}</style>
-      <div style={{ maxWidth: 480, margin: "0 auto" }}>
+      <div style={{ maxWidth: 600, margin: "0 auto", width: "100%" }}>
         {view === "login" && (
           <>
             {isOffline && (

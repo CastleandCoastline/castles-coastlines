@@ -72,6 +72,7 @@ async function saveTourToDB(tour) {
     notes: tour.notes || "", guide_name: tour.guide_name || "",
     guide_phone: tour.guide_phone || "", guide_email: tour.guide_email || "",
     coach_rows: tour.coach_rows || 10, coach_cols: tour.coach_cols || 4,
+    start_date: tour.start_date || "", current_day_override: tour.current_day_override || null,
   });
   if (error) throw error;
 }
@@ -1038,10 +1039,28 @@ const EmergencyPage = () => {
 
 // ── Guest View ────────────────────────────────────────────────────────────────
 const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
-  const [activeDay, setActiveDay] = useState(0);
   const [activePage, setActivePage] = useState(startPage || "itinerary");
   const [fontScale, setFontScale] = useState(1);
   const fs = (size) => Math.round(size * fontScale);
+
+  // Work out which day index to show based on start date or override
+  const calcDayIndex = () => {
+    if (tour.current_day_override) {
+      const idx = tour.days.findIndex(d => d.day === tour.current_day_override);
+      return idx >= 0 ? idx : 0;
+    }
+    if (tour.start_date) {
+      const start = new Date(tour.start_date);
+      const today = new Date();
+      const diff = Math.floor((today - start) / 86400000);
+      const dayNum = Math.max(1, Math.min(tour.duration, diff + 1));
+      const idx = tour.days.findIndex(d => d.day === dayNum);
+      return idx >= 0 ? idx : 0;
+    }
+    return 0;
+  };
+
+  const [activeDay, setActiveDay] = useState(calcDayIndex);
   const day = tour.days[activeDay];
   const currentLocation = (day?.location || "").split('-')[0].split('–')[0].trim();
   return (
@@ -1186,7 +1205,7 @@ const AddTourModal = ({ onSave, onClose, saving }) => {
   const handleSave = () => {
     if (!name || !duration || !password) return;
     const id = name.toLowerCase().replace(/[^a-z0-9]+/g, "-") + "-" + Date.now();
-    onSave({ id, name, duration: parseInt(duration), description: desc, password: password.toUpperCase(), announcement: "", notes: "", guide_name: "", guide_phone: "", guide_email: "", coach_rows: 10, coach_cols: 4, days: [], seats: [] });
+    onSave({ id, name, duration: parseInt(duration), description: desc, password: password.toUpperCase(), announcement: "", notes: "", guide_name: "", guide_phone: "", guide_email: "", coach_rows: 10, coach_cols: 4, start_date: "", current_day_override: null, days: [], seats: [] });
   };
   return (
     <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 1000, display: "flex", alignItems: "center", padding: "0 16px" }}>
@@ -1210,7 +1229,7 @@ const AddTourModal = ({ onSave, onClose, saving }) => {
 
 // ── Tour Settings Modal ───────────────────────────────────────────────────────
 const TourSettingsModal = ({ tour, onSave, onClose, saving }) => {
-  const [t, setT] = useState({ notes: tour.notes || "", guide_name: tour.guide_name || "", guide_phone: tour.guide_phone || "", guide_email: tour.guide_email || "" });
+  const [t, setT] = useState({ notes: tour.notes || "", guide_name: tour.guide_name || "", guide_phone: tour.guide_phone || "", guide_email: tour.guide_email || "", start_date: tour.start_date || "" });
   const inp = (label, val, fn, ph, type = "text") => (<div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}><label style={{ fontSize: 11, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase" }}>{label}</label><input value={val} onChange={(e) => fn(e.target.value)} placeholder={ph} type={type} style={{ background: "#0d1520", border: "1px solid #ffffff20", borderRadius: 8, padding: "10px 12px", color: "#f0e6d3", fontSize: 14, width: "100%", outline: "none" }} /></div>);
   return (
     <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 1000, overflowY: "auto", padding: "20px 16px" }}>
@@ -1218,6 +1237,13 @@ const TourSettingsModal = ({ tour, onSave, onClose, saving }) => {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, color: "#f0e6d3" }}>Notes & Contact</div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#607080", fontSize: 22, cursor: "pointer" }}>×</button>
+        </div>
+        <div style={{ fontSize: 13, color: "#c9a96e", fontFamily: "'Playfair Display',serif", marginBottom: 14 }}>Tour Start Date</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
+          <label style={{ fontSize: 11, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase" }}>Tour Start Date</label>
+          <input value={t.start_date} onChange={e => setT({ ...t, start_date: e.target.value })} type="date"
+            style={{ background: "#0d1520", border: "1px solid #ffffff20", borderRadius: 8, padding: "10px 12px", color: "#f0e6d3", fontSize: 14, width: "100%", outline: "none" }} />
+          <div style={{ fontSize: 11, color: "#506070" }}>The app will automatically show the correct day based on today's date</div>
         </div>
         <div style={{ fontSize: 13, color: "#c9a96e", fontFamily: "'Playfair Display',serif", marginBottom: 14 }}>Your Contact Details</div>
         {inp("Your Name", t.guide_name, (v) => setT({ ...t, guide_name: v }), "e.g. James McAllister")}
@@ -1261,7 +1287,7 @@ const GuideDashboard = ({ tours, onLogout, onRefresh, onViewTour }) => {
   const addDay = () => { const n = tour.days.length > 0 ? Math.max(...tour.days.map((d) => d.day)) + 1 : 1; setEditingDay({ day: n, title: `Day ${n}`, location: "", schedule: [], attractions: [] }); };
   const deleteDay = async (day) => { if (!window.confirm(`Delete Day ${day.day}?`)) return; setSaving(true); try { if (day.id) await deleteDayFromDB(day.id); await onRefresh(); showStatus("✓ Day deleted"); } catch (e) { showStatus("❌ Delete failed"); } setSaving(false); };
   const addTour = async (t) => { setSaving(true); try { await saveTourToDB(t); await onRefresh(); setActiveTourId(t.id); setShowAddTour(false); showStatus("✓ Tour created"); } catch (e) { showStatus("❌ Failed"); } setSaving(false); };
-  const saveSettings = async (settings) => { setSaving(true); try { await supabase.from("tours").update({ notes: settings.notes, guide_name: settings.guide_name, guide_phone: settings.guide_phone, guide_email: settings.guide_email }).eq("id", tour.id); await onRefresh(); setShowSettings(false); showStatus("✓ Saved"); } catch (e) { showStatus("❌ Failed"); } setSaving(false); };
+  const saveSettings = async (settings) => { setSaving(true); try { await supabase.from("tours").update({ notes: settings.notes, guide_name: settings.guide_name, guide_phone: settings.guide_phone, guide_email: settings.guide_email, start_date: settings.start_date, current_day_override: null }).eq("id", tour.id); await onRefresh(); setShowSettings(false); showStatus("✓ Saved"); } catch (e) { showStatus("❌ Failed"); } setSaving(false); };
   const saveSeating = async (rows, cols, seatData) => { setSaving(true); try { await supabase.from("tours").update({ coach_rows: rows, coach_cols: cols }).eq("id", tour.id); await saveSeats(tour.id, rows, cols, seatData); await onRefresh(); setShowSeating(false); showStatus("✓ Seating plan saved"); } catch (e) { showStatus("❌ Failed to save seating"); } setSaving(false); };
   const saveAnnouncement = async () => { try { await supabase.from("tours").update({ announcement: announcementDraft }).eq("id", tour.id); await onRefresh(); setAnnouncementSaved(true); setTimeout(() => setAnnouncementSaved(false), 2500); } catch (e) { showStatus("❌ Failed"); } };
   const clearAnnouncement = async () => { setAnnouncementDraft(""); await supabase.from("tours").update({ announcement: "" }).eq("id", tour.id); await onRefresh(); };
@@ -1308,6 +1334,36 @@ const GuideDashboard = ({ tours, onLogout, onRefresh, onViewTour }) => {
           <button onClick={() => setShowQR(true)} style={{ padding: "13px", background: "linear-gradient(135deg,#c9a96e,#a07840)", borderRadius: 12, border: "none", color: "#1a1a2e", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>Show QR Code 📱</button>
           <button onClick={() => setShowSettings(true)} style={{ padding: "13px", background: "#1a2332", border: "1px solid #c9a96e40", borderRadius: 12, color: "#c9a96e", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>Notes & Contact ✏️</button>
           <button onClick={() => setShowSeating(true)} style={{ padding: "13px", background: "#1a2332", border: "1px solid #c9a96e40", borderRadius: 12, color: "#c9a96e", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>Seating Plan 🚌</button>
+        </div>
+        {/* Day override */}
+        <div style={{ background: "#1a2332", borderRadius: 14, padding: "14px 18px", marginBottom: 16, border: "1px solid #ffffff10" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#f0e6d3" }}>📅 Current Tour Day</div>
+              <div style={{ fontSize: 11, color: "#506070", marginTop: 2 }}>
+                {tour.start_date ? `Auto: Day ${Math.max(1, Math.min(tour.duration, Math.floor((new Date() - new Date(tour.start_date)) / 86400000) + 1))} based on start date` : "Set a start date in Notes & Contact to auto-detect"}
+              </div>
+            </div>
+            {tour.current_day_override && (
+              <button onClick={async () => { await supabase.from("tours").update({ current_day_override: null }).eq("id", tour.id); await onRefresh(); showStatus("✓ Override cleared"); }}
+                style={{ background: "#ff444415", border: "1px solid #ff444430", borderRadius: 8, padding: "4px 10px", color: "#ff6666", fontSize: 11, cursor: "pointer" }}>
+                Clear override
+              </button>
+            )}
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <div style={{ fontSize: 12, color: "#8090a0" }}>Override to day:</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {Array.from({ length: Math.min(tour.duration, 20) }, (_, i) => i + 1).map(d => (
+                <button key={d} onClick={async () => { await supabase.from("tours").update({ current_day_override: d }).eq("id", tour.id); await onRefresh(); showStatus(`✓ Set to Day ${d}`); }}
+                  style={{ width: 34, height: 30, background: tour.current_day_override === d ? "#c9a96e" : "#0d1520", border: `1px solid ${tour.current_day_override === d ? "#c9a96e" : "#ffffff20"}`, borderRadius: 6, color: tour.current_day_override === d ? "#1a1a2e" : "#8090a0", fontSize: 12, fontWeight: tour.current_day_override === d ? 700 : 400, cursor: "pointer" }}>
+                  {d}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16, display: "none" }}>
           <button onClick={() => onViewTour(tour)} style={{ padding: "13px", background: "#1a2332", border: "1px solid #ffffff15", borderRadius: 12, color: "#8090a0", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Guest View ↗</button>
         </div>
         <button onClick={() => window.open('/menu', '_blank')} style={{ width: "100%", padding: "13px", background: "#1a2332", border: "1px solid #c9a96e40", borderRadius: 12, color: "#c9a96e", fontWeight: 700, fontSize: 14, cursor: "pointer", marginTop: -6, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>

@@ -2,7 +2,9 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { inject } from '@vercel/analytics';
+import { injectSpeedInsights } from '@vercel/speed-insights';
 inject();
+injectSpeedInsights();
 
 const supabase = createClient(
   "https://pukdpnkgsyewvbswoqyo.supabase.co",

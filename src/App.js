@@ -612,7 +612,7 @@ const AnnouncementBanner = ({ text }) => {
 const GuestNav = ({ active, onChange }) => {
   const tabs = [{ id: "itinerary", icon: "🗓️", label: "Itinerary" }, { id: "coach", icon: "🚌", label: "Seats" }, { id: "photos", icon: "📸", label: "Photos" }, { id: "info", icon: "💡", label: "Info" }, { id: "contact", icon: "📞", label: "Contact" }, { id: "emergency", icon: "🚑", label: "Emergency" }];
   return (
-    <div className="guest-nav" style={{ display: "flex", borderTop: "1px solid #ffffff10", background: "#0d1520", position: "sticky", bottom: 0 }}>
+    <div className="guest-nav" style={{ display: "flex", borderTop: "1px solid #ffffff10", background: "#0d1520", flexShrink: 0 }}>
       {tabs.map((tab) => (
         <button key={tab.id} onClick={() => onChange(tab.id)} style={{ flex: 1, padding: "10px 2px 8px", background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, borderTop: `2px solid ${active === tab.id ? "#c9a96e" : "transparent"}` }}>
           <span style={{ fontSize: 16 }}>{tab.icon}</span>
@@ -986,7 +986,7 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
   const day = tour.days[activeDay];
   const currentLocation = (day?.location || "").split('-')[0].split('–')[0].trim();
   return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(160deg,#0d1520 0%,#1a2332 50%,#0d1520 100%)", fontFamily: "'Lato',sans-serif", color: "#f0e6d3", display: "flex", flexDirection: "column" }}>
+    <div style={{ height: "100vh", background: "linear-gradient(160deg,#0d1520 0%,#1a2332 50%,#0d1520 100%)", fontFamily: "'Lato',sans-serif", color: "#f0e6d3", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <AnnouncementBanner text={tour.announcement} />
       {isOffline && (
         <div style={{ background: "#2a3a2a", borderBottom: "1px solid #4a6a4a", padding: "8px 20px", display: "flex", alignItems: "center", gap: 8 }}>
@@ -1018,7 +1018,7 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
           </div>
         </div>
       </div>
-      <div style={{ flex: 1, overflowY: "auto" }}>
+      <div style={{ flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
         {activePage === "itinerary" && (
           <>
             {tour.days.length === 0 ? <div style={{ padding: 40, textAlign: "center", color: "#405060" }}><div style={{ fontSize: 40, marginBottom: 12 }}>🗓️</div><div>Your itinerary is being prepared. Check back soon!</div></div>

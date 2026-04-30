@@ -1145,7 +1145,7 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
                 <div style={{ overflowX: "auto", padding: "12px 20px", display: "flex", gap: 8, borderBottom: "1px solid #ffffff10" }}>
                   {tour.days.map((d, i) => (<button key={i} onClick={() => setActiveDay(i)} style={{ flexShrink: 0, padding: "7px 14px", borderRadius: 20, border: `1px solid ${activeDay === i ? "#c9a96e" : "#ffffff20"}`, background: activeDay === i ? "#c9a96e" : "transparent", color: activeDay === i ? "#1a1a2e" : "#a0b0c0", fontWeight: activeDay === i ? 700 : 400, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>Day {d.day}</button>))}
                 </div>
-                <CountdownBanner schedule={day.schedule} />
+                {activeDay === calcDayIndex() && <CountdownBanner schedule={day.schedule} />}
                 <div style={{ padding: 24 }}>
                   <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, marginBottom: 6 }}>{day.title}</div>
                   <div style={{ fontSize: 20, fontWeight: 700, color: "#c9a96e", marginBottom: 16 }}>📍 {day.location}</div>

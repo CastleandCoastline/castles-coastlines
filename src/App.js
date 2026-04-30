@@ -571,6 +571,65 @@ const PhotoLibrary = ({ tour, isGuide }) => {
   );
 };
 
+// ── Countdown Banner ──────────────────────────────────────────────────────────
+const CountdownBanner = ({ schedule }) => {
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  if (!schedule || schedule.length === 0) return null;
+
+  const nowMins = now.getHours() * 60 + now.getMinutes();
+
+  const next = schedule.find(s => {
+    if (!s.time) return false;
+    const [h, m] = s.time.split(':').map(Number);
+    return h * 60 + m > nowMins;
+  });
+
+  if (!next) return (
+    <div style={{ background: "#1a2332", borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "10px 20px", display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#506070", flexShrink: 0 }} />
+      <div style={{ fontSize: 13, color: "#607080" }}>All events completed for today</div>
+    </div>
+  );
+
+  const [h, m] = next.time.split(':').map(Number);
+  const diff = h * 60 + m - nowMins;
+  const hrs = Math.floor(diff / 60);
+  const mins = diff % 60;
+
+  const dotColor = diff <= 2 ? "#e84444" : diff <= 10 ? "#e8a060" : "#6abf6a";
+  const bgColor = diff <= 2 ? "rgba(232,68,68,0.08)" : diff <= 10 ? "rgba(232,160,96,0.08)" : "rgba(26,35,50,1)";
+  const borderColor = diff <= 2 ? "rgba(232,68,68,0.25)" : diff <= 10 ? "rgba(232,160,96,0.2)" : "rgba(201,169,110,0.15)";
+  const timeColor = diff <= 2 ? "#e84444" : diff <= 10 ? "#e8a060" : "#c9a96e";
+  const urgencyLabel = diff <= 2 ? "⚠️ Starting now" : diff <= 10 ? "Coming up soon" : "Next up";
+
+  const countdownText = hrs > 0
+    ? `${hrs}h ${mins}m`
+    : `${mins} min`;
+
+  return (
+    <div style={{ background: bgColor, borderBottom: `1px solid ${borderColor}`, padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "all 0.5s" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ width: 8, height: 8, borderRadius: "50%", background: dotColor, flexShrink: 0, transition: "background 0.5s" }} />
+        <div>
+          <div style={{ fontSize: 11, color: "#8090a0" }}>{urgencyLabel}</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "#f0e6d3" }}>{next.label}</div>
+          {next.note && <div style={{ fontSize: 11, color: "#506070", marginTop: 1 }}>{next.note}</div>}
+        </div>
+      </div>
+      <div style={{ textAlign: "right", flexShrink: 0 }}>
+        <div style={{ fontSize: 22, fontWeight: 700, color: timeColor, fontVariantNumeric: "tabular-nums", transition: "color 0.5s" }}>{countdownText}</div>
+        <div style={{ fontSize: 11, color: "#506070" }}>{next.time}</div>
+      </div>
+    </div>
+  );
+};
+
 // ── Guest Login ───────────────────────────────────────────────────────────────
 const GuestLogin = ({ tours, onUnlock, onGuideLogin }) => {
   const [code, setCode] = useState(""); const [error, setError] = useState(""); const [shake, setShake] = useState(false);
@@ -1026,19 +1085,40 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
                 <div style={{ overflowX: "auto", padding: "12px 20px", display: "flex", gap: 8, borderBottom: "1px solid #ffffff10" }}>
                   {tour.days.map((d, i) => (<button key={i} onClick={() => setActiveDay(i)} style={{ flexShrink: 0, padding: "7px 14px", borderRadius: 20, border: `1px solid ${activeDay === i ? "#c9a96e" : "#ffffff20"}`, background: activeDay === i ? "#c9a96e" : "transparent", color: activeDay === i ? "#1a1a2e" : "#a0b0c0", fontWeight: activeDay === i ? 700 : 400, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>Day {d.day}</button>))}
                 </div>
+                <CountdownBanner schedule={day.schedule} />
                 <div style={{ padding: 24 }}>
                   <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, marginBottom: 6 }}>{day.title}</div>
                   <div style={{ fontSize: 20, fontWeight: 700, color: "#c9a96e", marginBottom: 16 }}>📍 {day.location}</div>
                   {/* Weather for this day's location */}
                   {day.location && <WeatherWidget location={day.location.split('-')[0].split('–')[0].trim()} />}
                   <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, color: "#c9a96e", marginBottom: 14 }}>Today's Schedule</div>
-                  {day.schedule.map((item, i) => (
-                    <div key={i} style={{ display: "flex", gap: 16, paddingBottom: 20 }}>
+                  {day.schedule.map((item, i) => {
+                    const isPast = (() => {
+                      if (!item.time) return false;
+                      const [h, m] = item.time.split(':').map(Number);
+                      const now = new Date();
+                      return h * 60 + m < now.getHours() * 60 + now.getMinutes();
+                    })();
+                    const isNext = (() => {
+                      if (!item.time) return false;
+                      const [h, m] = item.time.split(':').map(Number);
+                      const now = new Date();
+                      const nowMins = now.getHours() * 60 + now.getMinutes();
+                      const itemMins = h * 60 + m;
+                      const nextItem = day.schedule.find(s => {
+                        if (!s.time) return false;
+                        const [sh, sm] = s.time.split(':').map(Number);
+                        return sh * 60 + sm > nowMins;
+                      });
+                      return nextItem && nextItem.time === item.time && nextItem.label === item.label;
+                    })();
+                    return (
+                    <div key={i} style={{ display: "flex", gap: 16, paddingBottom: 20, opacity: isPast ? 0.4 : 1, transition: "opacity 0.3s" }}>
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
                         <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#c9a96e", marginTop: 4 }} />
                         {i < day.schedule.length - 1 && <div style={{ width: 1, flex: 1, background: "#c9a96e30", marginTop: 4 }} />}
                       </div>
-                      <div style={{ flex: 1 }}>
+                      <div style={{ flex: 1, background: isNext ? "rgba(201,169,110,0.08)" : "transparent", border: isNext ? "1px solid rgba(201,169,110,0.2)" : "1px solid transparent", borderRadius: isNext ? 10 : 0, padding: isNext ? "10px 14px" : "0" }}>
                         <div style={{ display: "flex", gap: 10, alignItems: "baseline" }}>
                           <span style={{ fontSize: fs(15), fontWeight: 700, color: "#c9a96e" }}>{item.time}</span>
                           <span style={{ fontSize: fs(15), color: "#f0e6d3", fontWeight: 500 }}>{item.label}</span>
@@ -1046,7 +1126,7 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
                         {item.note && <div style={{ fontSize: fs(13), color: "#6070a0", marginTop: 2 }}>{item.note}</div>}
                       </div>
                     </div>
-                  ))}
+                  );})}
                   {day.attractions?.length > 0 && <>
                     <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, color: "#c9a96e", marginTop: 8, marginBottom: 14 }}>Attractions & Map</div>
                     <LeafletMap attractions={day.attractions} />

@@ -1003,13 +1003,18 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
         <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700 }}>{tour.name}</div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 3 }}>
           <div style={{ color: "#8090a0", fontSize: 12 }}>{tour.duration}-day tour</div>
-          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-            {[1, 1.2, 1.45].map((scale) => (
-              <button key={scale} onClick={() => setFontScale(scale)}
-                style={{ background: fontScale === scale ? "#c9a96e20" : "transparent", border: `1px solid ${fontScale === scale ? "#c9a96e" : "#ffffff20"}`, borderRadius: 6, width: 28, height: 26, cursor: "pointer", color: fontScale === scale ? "#c9a96e" : "#607080", fontSize: scale === 1 ? 10 : scale === 1.2 ? 12 : 15, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                A
-              </button>
-            ))}
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 10, color: "#506070", fontWeight: 700 }}>A</span>
+            <input
+              type="range"
+              min={1}
+              max={2}
+              step={0.05}
+              value={fontScale}
+              onChange={e => setFontScale(parseFloat(e.target.value))}
+              style={{ width: 80, accentColor: "#c9a96e", cursor: "pointer" }}
+            />
+            <span style={{ fontSize: 16, color: "#c9a96e", fontWeight: 700 }}>A</span>
           </div>
         </div>
       </div>

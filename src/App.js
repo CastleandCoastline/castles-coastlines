@@ -26,6 +26,34 @@ const WMO_CODES = {
   95: { label: "Thunderstorm", icon: "⛈️" }, 99: { label: "Thunderstorm", icon: "⛈️" },
 };
 
+function parseSingleTime(str) {
+  if (!str) return null;
+  const t = str.trim().toUpperCase();
+  const ampm = t.includes('AM') || t.includes('PM');
+  if (ampm) {
+    const isPM = t.includes('PM');
+    const clean = t.replace('AM','').replace('PM','').trim();
+    const [hStr, mStr] = clean.split(':');
+    let h = parseInt(hStr);
+    const m = parseInt(mStr || '0');
+    if (isPM && h !== 12) h += 12;
+    if (!isPM && h === 12) h = 0;
+    return h * 60 + m;
+  }
+  const parts = t.split(':');
+  if (parts.length < 2) return null;
+  return parseInt(parts[0]) * 60 + parseInt(parts[1] || '0');
+}
+
+function parseTimeMins(timeStr) {
+  if (!timeStr) return null;
+  const parts = timeStr.split(/\s*[-\u2013]\s*/);
+  if (parts.length >= 2) {
+    return { start: parseSingleTime(parts[0]), end: parseSingleTime(parts[1]), isRange: true };
+  }
+  return { start: parseSingleTime(parts[0]), end: null, isRange: false };
+}
+
 async function geocodeLocation(location) {
   // Fetch more results and prioritise UK and Ireland
   const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=10&language=en&format=json`);
@@ -585,21 +613,30 @@ const CountdownBanner = ({ schedule }) => {
 
   const nowMins = now.getHours() * 60 + now.getMinutes();
 
-  const next = schedule.find(s => {
-    if (!s.time) return false;
-    const [h, m] = s.time.split(':').map(Number);
-    return h * 60 + m > nowMins;
-  });
+  let next = null;
+  let diff = null;
+  let isDeparture = false;
 
-  if (!next) return (
+  for (const s of schedule) {
+    if (!s.time) continue;
+    const parsed = parseTimeMins(s.time);
+    if (!parsed || parsed.start === null) continue;
+    // Between start and end of a range — show departure countdown
+    if (parsed.isRange && parsed.end !== null && parsed.start <= nowMins && parsed.end > nowMins) {
+      next = s; diff = parsed.end - nowMins; isDeparture = true; break;
+    }
+    // Start time is upcoming
+    if (parsed.start > nowMins) {
+      next = s; diff = parsed.start - nowMins; isDeparture = false; break;
+    }
+  }
+
+  if (!next || diff === null) return (
     <div style={{ background: "#1a2332", borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "10px 20px", display: "flex", alignItems: "center", gap: 10 }}>
       <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#506070", flexShrink: 0 }} />
       <div style={{ fontSize: 13, color: "#607080" }}>All events completed for today</div>
     </div>
   );
-
-  const [h, m] = next.time.split(':').map(Number);
-  const diff = h * 60 + m - nowMins;
   const hrs = Math.floor(diff / 60);
   const mins = diff % 60;
 
@@ -607,7 +644,11 @@ const CountdownBanner = ({ schedule }) => {
   const bgColor = diff <= 2 ? "rgba(232,68,68,0.08)" : diff <= 10 ? "rgba(232,160,96,0.08)" : "rgba(26,35,50,1)";
   const borderColor = diff <= 2 ? "rgba(232,68,68,0.25)" : diff <= 10 ? "rgba(232,160,96,0.2)" : "rgba(201,169,110,0.15)";
   const timeColor = diff <= 2 ? "#e84444" : diff <= 10 ? "#e8a060" : "#c9a96e";
-  const urgencyLabel = diff <= 2 ? "⚠️ Starting now" : diff <= 10 ? "Coming up soon" : "Next up";
+  const urgencyLabel = diff <= 2
+    ? (isDeparture ? "⚠️ Departing now" : "⚠️ Starting now")
+    : diff <= 10
+    ? (isDeparture ? "Time to head back!" : "Coming up soon")
+    : (isDeparture ? "Departing" : "Next up");
 
   const countdownText = hrs > 0
     ? `${hrs}h ${mins}m`
@@ -1120,12 +1161,16 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
                     })();
                     const isNext = (() => {
                       if (!item.time) return false;
-                      const now = new Date();
-                      const nowMins = now.getHours() * 60 + now.getMinutes();
+                      const nowM = new Date().getHours() * 60 + new Date().getMinutes();
+                      const parsed = parseTimeMins(item.time);
+                      if (!parsed) return false;
+                      // Currently at this location — between start and end
+                      if (parsed.isRange && parsed.start <= nowM && parsed.end && parsed.end > nowM) return true;
+                      // Next upcoming start time
                       const nextItem = day.schedule.find(s => {
                         if (!s.time) return false;
-                        const [sh, sm] = s.time.split(':').map(Number);
-                        return sh * 60 + sm > nowMins;
+                        const p = parseTimeMins(s.time);
+                        return p && p.start > nowM;
                       });
                       return nextItem && nextItem.time === item.time && nextItem.label === item.label;
                     })();

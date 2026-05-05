@@ -1192,7 +1192,6 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
                       });
                       return nextIndex === i;
                     })();
-                    })();
                     return (
                     <div key={i} style={{ display: "flex", gap: 16, paddingBottom: 20, opacity: isPast ? 0.4 : 1, transition: "opacity 0.3s" }}>
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>

@@ -1115,15 +1115,21 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
           <span style={{ fontSize: 12, color: "#8aba8a" }}>Offline — showing saved itinerary. Connect to see latest updates.</span>
         </div>
       )}
-      <div style={{ background: "linear-gradient(180deg,#0a0f1a 0%,transparent 100%)", padding: "20px 24px 14px", borderBottom: "1px solid #ffffff10" }}>
-        <button onClick={onLogout} style={{ background: "none", border: "none", color: "#506070", cursor: "pointer", fontSize: 12, marginBottom: 8, padding: 0 }}>← Change tour</button>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-          <img src="/logo-app.png" alt="logo" style={{ width: 32, height: 32, objectFit: "contain" }} />
-          <div style={{ fontSize: 10, letterSpacing: 3, color: "#c9a96e", textTransform: "uppercase" }}>Castle & Coastline</div>
+      <div style={{ background: "linear-gradient(180deg,#0a0f1a 0%,transparent 100%)", padding: "16px 24px 14px", borderBottom: "1px solid #ffffff10" }}>
+        <button onClick={onLogout} style={{ background: "none", border: "none", color: "#506070", cursor: "pointer", fontSize: 12, marginBottom: 10, padding: 0 }}>← Change tour</button>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+          <img src="/logo-app.png" alt="logo" style={{ width: 52, height: 52, objectFit: "contain", flexShrink: 0 }} />
+          <div>
+            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, color: "#f0e6d3", lineHeight: 1.1 }}>Castle & Coastline</div>
+            <div style={{ fontSize: 11, letterSpacing: 2, color: "#c9a96e", textTransform: "uppercase", marginTop: 2 }}>Tours of the UK & Ireland</div>
+          </div>
         </div>
-        <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700 }}>{tour.name}</div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 3 }}>
-          <div style={{ color: "#8090a0", fontSize: 12 }}>{tour.duration}-day tour</div>
+        <div style={{ background: "#1a2332", borderRadius: 10, padding: "8px 14px", display: "inline-block", marginBottom: 4 }}>
+          <div style={{ fontSize: 13, color: "#8090a0" }}>{tour.duration}-day tour</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: "#f0e6d3" }}>{tour.name}</div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+          <div style={{ color: "#8090a0", fontSize: 12, display: "none" }}>{tour.duration}-day tour</div>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span style={{ fontSize: 10, color: "#506070", fontWeight: 700 }}>A</span>
             <input

@@ -1131,8 +1131,6 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
             <div style={{ fontSize: 15, fontWeight: 600, color: "#f0e6d3" }}>{tour.name}</div>
             <div style={{ fontSize: 11, color: "#607080" }}>{tour.duration}-day tour</div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 0 }}>
-          <div style={{ color: "#8090a0", fontSize: 12, display: "none" }}>{tour.duration}-day tour</div>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span style={{ fontSize: 10, color: "#506070", fontWeight: 700 }}>A</span>
             <input

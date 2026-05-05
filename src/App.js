@@ -1179,30 +1179,19 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
                       const nowM = new Date().getHours() * 60 + new Date().getMinutes();
                       const checkMins = parsed.isRange && parsed.end ? parsed.end : parsed.start;
                       return checkMins !== null && checkMins < nowM;
-                    })();
                     const isNext = (() => {
                       if (!isCurrentDay || allDone) return false;
                       if (!item.time) return false;
                       const nowM = new Date().getHours() * 60 + new Date().getMinutes();
-                      const parsed = parseTimeMins(item.time);
-                      if (!parsed) return false;
-                      // Currently at this location — between start and end
-                      if (parsed.isRange && parsed.start <= nowM && parsed.end && parsed.end > nowM) {
-                        // Only highlight if this is the first such event
-                        const firstActive = day.schedule.find(s => {
-                          if (!s.time) return false;
-                          const p = parseTimeMins(s.time);
-                          return p && p.isRange && p.start <= nowM && p.end && p.end > nowM;
-                        });
-                        return firstActive && firstActive.time === item.time && firstActive.label === item.label;
-                      }
-                      // Next upcoming start time — find the single next event only
-                      const nextItem = day.schedule.find(s => {
+                      const nextIndex = day.schedule.findIndex(s => {
                         if (!s.time) return false;
                         const p = parseTimeMins(s.time);
-                        return p && p.start > nowM;
+                        if (!p) return false;
+                        if (p.isRange && p.start <= nowM && p.end && p.end > nowM) return true;
+                        return p.start > nowM;
                       });
-                      return nextItem && nextItem.time === item.time && nextItem.label === item.label;
+                      return nextIndex === i;
+                    })();
                     })();
                     return (
                     <div key={i} style={{ display: "flex", gap: 16, paddingBottom: 20, opacity: isPast ? 0.4 : 1, transition: "opacity 0.3s" }}>

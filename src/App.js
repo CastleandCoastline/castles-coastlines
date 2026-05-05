@@ -1120,16 +1120,16 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
         <div style={{ background: "#1a2332", padding: "12px 20px", display: "flex", alignItems: "center", gap: 12 }}>
           <img src="/logo-app.png" alt="logo" style={{ width: 44, height: 44, objectFit: "contain", flexShrink: 0 }} />
           <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, color: "#f0e6d3", lineHeight: 1.1 }}>Castle & Coastline</div>
-            <div style={{ fontSize: 10, letterSpacing: 2, color: "#c9a96e", textTransform: "uppercase", marginTop: 2 }}>Tours of the UK & Ireland</div>
+            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 26, fontWeight: 700, color: "#f0e6d3", lineHeight: 1.1 }}>Castle & Coastline</div>
+            <div style={{ fontSize: 11, letterSpacing: 2, color: "#c9a96e", textTransform: "uppercase", marginTop: 3 }}>Tours of the UK & Ireland</div>
           </div>
           <button onClick={onLogout} style={{ background: "none", border: "1px solid #ffffff15", borderRadius: 8, color: "#506070", cursor: "pointer", fontSize: 11, padding: "4px 8px", flexShrink: 0 }}>← Exit</button>
         </div>
         {/* Tour name and font slider on same row */}
         <div style={{ padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: "#f0e6d3" }}>{tour.name}</div>
-            <div style={{ fontSize: 11, color: "#607080" }}>{tour.duration}-day tour</div>
+            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 700, color: "#f0e6d3" }}>{tour.name}</div>
+            <div style={{ fontSize: 11, color: "#607080", marginTop: 2 }}>{tour.duration}-day tour</div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span style={{ fontSize: 10, color: "#506070", fontWeight: 700 }}>A</span>

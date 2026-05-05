@@ -662,8 +662,8 @@ const CountdownBanner = ({ schedule }) => {
         <div style={{ width: 8, height: 8, borderRadius: "50%", background: dotColor, flexShrink: 0, transition: "background 0.5s" }} />
         <div>
           <div style={{ fontSize: 11, color: "#8090a0" }}>{urgencyLabel}</div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: "#f0e6d3" }}>{next.label}</div>
-          {next.note && <div style={{ fontSize: 11, color: "#506070", marginTop: 1 }}>{next.note}</div>}
+          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, color: "#f0e6d3" }}>{next.label}</div>
+          {next.note && <div style={{ fontSize: 12, color: "#506070", marginTop: 2 }}>{next.note}</div>}
         </div>
       </div>
       <div style={{ textAlign: "right", flexShrink: 0 }}>
@@ -1181,20 +1181,29 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
                       return checkMins !== null && checkMins < nowM;
                     })();
                     const isNext = (() => {
+                      if (!isCurrentDay || allDone) return false;
                       if (!item.time) return false;
                       const nowM = new Date().getHours() * 60 + new Date().getMinutes();
                       const parsed = parseTimeMins(item.time);
                       if (!parsed) return false;
                       // Currently at this location — between start and end
-                      if (parsed.isRange && parsed.start <= nowM && parsed.end && parsed.end > nowM) return true;
-                      // Next upcoming start time
+                      if (parsed.isRange && parsed.start <= nowM && parsed.end && parsed.end > nowM) {
+                        // Only highlight if this is the first such event
+                        const firstActive = day.schedule.find(s => {
+                          if (!s.time) return false;
+                          const p = parseTimeMins(s.time);
+                          return p && p.isRange && p.start <= nowM && p.end && p.end > nowM;
+                        });
+                        return firstActive && firstActive.time === item.time && firstActive.label === item.label;
+                      }
+                      // Next upcoming start time — find the single next event only
                       const nextItem = day.schedule.find(s => {
                         if (!s.time) return false;
                         const p = parseTimeMins(s.time);
                         return p && p.start > nowM;
                       });
                       return nextItem && nextItem.time === item.time && nextItem.label === item.label;
-                    })() && isCurrentDay && !allDone;
+                    })();
                     return (
                     <div key={i} style={{ display: "flex", gap: 16, paddingBottom: 20, opacity: isPast ? 0.4 : 1, transition: "opacity 0.3s" }}>
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>

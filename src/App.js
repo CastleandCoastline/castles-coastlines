@@ -1175,10 +1175,10 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
                       if (!isCurrentDay || allDone) return false;
                       if (!item.time) return false;
                       const parsed = parseTimeMins(item.time);
-                      if (!parsed) return false;
                       const nowM = new Date().getHours() * 60 + new Date().getMinutes();
                       const checkMins = parsed.isRange && parsed.end ? parsed.end : parsed.start;
                       return checkMins !== null && checkMins < nowM;
+                    })();
                     const isNext = (() => {
                       if (!isCurrentDay || allDone) return false;
                       if (!item.time) return false;

@@ -2383,7 +2383,7 @@ export default function App() {
           </>
         )}
         {view === "guide" && isGuide && <GuideDashboard tours={tours} onLogout={() => { setIsGuide(false); setView("login"); }} onRefresh={fetchTours} onViewTour={handleViewTour} />}
-        {view === "guest" && liveTour && <GuestView tour={liveTour} onLogout={() => setView("login")} isGuide={isGuide} startPage={guestStartPage} isOffline={isOffline} />}
+        {view === "guest" && liveTour && <GuestView tour={liveTour} onLogout={() => { localStorage.removeItem("cc_guest_surname"); setView("login"); }} isGuide={isGuide} startPage={guestStartPage} isOffline={isOffline} guestName={guestName} />}
       </div>
     </>
   );

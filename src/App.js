@@ -137,6 +137,19 @@ async function saveSeats(tourId, rows, cols, seatData) {
 async function deleteDayFromDB(dayId) { await supabase.from("days").delete().eq("id", dayId); }
 async function deleteTourFromDB(tourId) { await supabase.from("tours").delete().eq("id", tourId); }
 
+function isDeadlinePassed(deadline) {
+  if (!deadline) return false;
+  // Parse deadline like "17 May" or "17 May 2025"
+  try {
+    const year = new Date().getFullYear();
+    const d = new Date(`${deadline} ${year}`);
+    if (isNaN(d)) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return d < today;
+  } catch (e) { return false; }
+}
+
 async function loadExcursions(tourId) {
   const { data, error } = await supabase.from("excursions").select("*").eq("tour_id", tourId).order("sort_order");
   if (error) throw error;
@@ -824,6 +837,130 @@ const ExcursionSummary = ({ excursion, bookings, onClose, onDeleteBooking }) => 
   );
 };
 
+// ── Excursion Day Inline (bottom of itinerary) ───────────────────────────────
+const ExcursionDayInline = ({ tour, dayLocation, guestName }) => {
+  const [excursions, setExcursions] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [booking, setBooking] = useState(null);
+  const [guestNames, setGuestNames] = useState(guestName || "");
+  const [numPeople, setNumPeople] = useState(1);
+  const [paymentMethod, setPaymentMethod] = useState("Credit Card");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const fetchData = async () => {
+    try {
+      const [exc, book] = await Promise.all([loadExcursions(tour.id), loadBookings(tour.id)]);
+      const relevant = exc.filter(e => e.location && dayLocation && e.location.toLowerCase().includes(dayLocation.split(',')[0].toLowerCase().split('-')[0].trim()));
+      setExcursions(relevant);
+      setBookings(book);
+    } catch(e) { console.error(e); }
+  };
+
+  useEffect(() => { fetchData(); }, [tour.id, dayLocation]);
+
+  const myBooking = (excId) => bookings.find(b => b.excursion_id === excId && b.guest_names.toLowerCase().includes((guestName || "").toLowerCase().split(" ")[0]));
+
+  const handleBook = async () => {
+    if (!guestNames.trim()) { setError("Please enter your name"); return; }
+    setSubmitting(true);
+    try {
+      await submitBooking(tour.id, booking.id, guestNames.trim(), numPeople, paymentMethod);
+      setBooking(null); setGuestNames(guestName || ""); setNumPeople(1); setError("");
+      fetchData();
+    } catch(e) { setError("Failed — please try again"); }
+    setSubmitting(false);
+  };
+
+  if (excursions.length === 0) return null;
+
+  return (
+    <div style={{ marginTop: 24 }}>
+      <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, color: "#c9a96e", marginBottom: 14 }}>Optional Excursions Today</div>
+      {excursions.map(exc => {
+        const booked = myBooking(exc.id);
+        const deadlinePassed = isDeadlinePassed(exc.deadline);
+        return (
+          <div key={exc.id} style={{ background: "#1a2332", borderRadius: 14, border: `1px solid ${booked ? "#c9a96e40" : "#ffffff10"}`, padding: "14px 16px", marginBottom: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+              <div style={{ flex: 1, marginRight: 10 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#f0e6d3" }}>{exc.title}</div>
+                {exc.subtitle && <div style={{ fontSize: 12, color: "#8090a0", marginTop: 2 }}>{exc.subtitle}</div>}
+                {exc.deadline && <div style={{ fontSize: 11, color: "#506070", marginTop: 4 }}>📅 Deadline: {exc.deadline}</div>}
+              </div>
+              <div style={{ textAlign: "right", flexShrink: 0 }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#c9a96e" }}>£{exc.price}</div>
+                <div style={{ fontSize: 10, color: "#506070" }}>per person</div>
+              </div>
+            </div>
+            {booked ? (
+              <div>
+                <div style={{ background: "rgba(106,191,106,0.1)", border: "1px solid rgba(106,191,106,0.3)", borderRadius: 8, padding: "8px 12px", marginBottom: 6 }}>
+                  <div style={{ fontSize: 12, color: "#6abf6a", fontWeight: 600 }}>✓ Booked — {booked.guest_names} · {booked.num_people} {booked.num_people === 1 ? "person" : "people"} · £{booked.num_people * exc.price}</div>
+                </div>
+                {!deadlinePassed && (
+                  <button onClick={async () => { if (window.confirm("Cancel this booking?")) { await deleteBooking(booked.id); fetchData(); } }}
+                    style={{ width: "100%", padding: "8px", background: "#ff444415", border: "1px solid #ff444430", borderRadius: 8, color: "#ff6666", fontSize: 12, cursor: "pointer" }}>
+                    Cancel booking
+                  </button>
+                )}
+              </div>
+            ) : deadlinePassed ? (
+              <div style={{ fontSize: 12, color: "#506070", textAlign: "center", padding: "6px 0" }}>Booking deadline has passed</div>
+            ) : (
+              <button onClick={() => { setBooking(exc); setError(""); }}
+                style={{ width: "100%", padding: "10px", background: "linear-gradient(135deg,#c9a96e,#a07840)", borderRadius: 8, border: "none", color: "#1a1a2e", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                Book this excursion
+              </button>
+            )}
+          </div>
+        );
+      })}
+
+      {booking && (
+        <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 2000, display: "flex", alignItems: "flex-end" }}>
+          <div style={{ background: "#1a2332", borderRadius: "20px 20px 0 0", padding: 24, width: "100%", maxWidth: 480, margin: "0 auto", border: "1px solid #c9a96e30" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, color: "#f0e6d3" }}>{booking.title}</div>
+              <button onClick={() => { setBooking(null); setError(""); }} style={{ background: "none", border: "none", color: "#607080", fontSize: 22, cursor: "pointer" }}>×</button>
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 11, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Name(s)</label>
+              <input value={guestNames} onChange={e => setGuestNames(e.target.value)} placeholder="e.g. John & Mary Smith"
+                style={{ width: "100%", background: "#0d1520", border: "1px solid #ffffff20", borderRadius: 8, padding: "10px 12px", color: "#f0e6d3", fontSize: 14, outline: "none" }} />
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 11, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Number of people</label>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <button onClick={() => setNumPeople(p => Math.max(1, p - 1))} style={{ width: 36, height: 36, borderRadius: "50%", background: "#0d1520", border: "1px solid #ffffff20", color: "#f0e6d3", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>−</button>
+                <div style={{ fontSize: 24, fontWeight: 700, color: "#f0e6d3", minWidth: 30, textAlign: "center" }}>{numPeople}</div>
+                <button onClick={() => setNumPeople(p => p + 1)} style={{ width: 36, height: 36, borderRadius: "50%", background: "#0d1520", border: "1px solid #ffffff20", color: "#f0e6d3", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
+                <div style={{ marginLeft: "auto", fontSize: 16, fontWeight: 700, color: "#c9a96e" }}>£{numPeople * booking.price}</div>
+              </div>
+            </div>
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ fontSize: 11, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Payment method</label>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {["Prepaid", "Credit Card", "Cash"].map(method => (
+                  <button key={method} onClick={() => setPaymentMethod(method)}
+                    style={{ padding: "7px 14px", borderRadius: 20, border: `1px solid ${paymentMethod === method ? "#c9a96e" : "#ffffff20"}`, background: paymentMethod === method ? "#c9a96e15" : "transparent", color: paymentMethod === method ? "#c9a96e" : "#8090a0", fontSize: 13, cursor: "pointer" }}>
+                    {method}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {error && <div style={{ color: "#ff6666", fontSize: 13, marginBottom: 12, textAlign: "center" }}>{error}</div>}
+            <button onClick={handleBook} disabled={submitting}
+              style={{ width: "100%", padding: "14px", background: submitting ? "#806040" : "linear-gradient(135deg,#c9a96e,#a07840)", borderRadius: 12, border: "none", color: "#1a1a2e", fontWeight: 700, fontSize: 15, cursor: submitting ? "default" : "pointer" }}>
+              {submitting ? "Booking…" : `Confirm Booking — £${numPeople * booking.price}`}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ── Excursion Day Banner ─────────────────────────────────────────────────────
 const ExcursionDayBanner = ({ tour, dayLocation, onViewExcursions }) => {
   const [excursions, setExcursions] = useState([]);
@@ -904,8 +1041,16 @@ const ExcursionsPage = ({ tour }) => {
   return (
     <div style={{ padding: "0 0 20px" }}>
       <div style={{ padding: "20px 20px 12px" }}>
-        <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Optional Excursions</div>
-        <div style={{ color: "#7080a0", fontSize: 13 }}>Select what you'd like to join and submit your choices</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Optional Excursions</div>
+          {guestName && (
+            <button onClick={() => { localStorage.removeItem("cc_guest_name"); window.location.reload(); }}
+              style={{ background: "none", border: "1px solid #ffffff20", borderRadius: 8, padding: "4px 10px", color: "#607080", fontSize: 11, cursor: "pointer", flexShrink: 0 }}>
+              Not {guestName.split(" ")[0]}?
+            </button>
+          )}
+        </div>
+        <div style={{ color: "#7080a0", fontSize: 13 }}>Viewing as <strong style={{ color: "#c9a96e" }}>{guestName || "Guest"}</strong></div>
       </div>
 
       {excursions.map(exc => {
@@ -929,17 +1074,36 @@ const ExcursionsPage = ({ tour }) => {
               {exc.description && <div style={{ fontSize: 13, color: "#8090a0", lineHeight: 1.6, marginBottom: 12 }}>{exc.description}</div>}
               {exc.deadline && <div style={{ fontSize: 11, color: "#506070", marginBottom: 12 }}>📅 Booking deadline: {exc.deadline}</div>}
 
-              {booked ? (
-                <div style={{ background: "rgba(106,191,106,0.1)", border: "1px solid rgba(106,191,106,0.3)", borderRadius: 10, padding: "10px 14px" }}>
-                  <div style={{ fontSize: 13, color: "#6abf6a", fontWeight: 600, marginBottom: 2 }}>✓ Booked — {booked.guest_names}</div>
-                  <div style={{ fontSize: 12, color: "#506070" }}>{booked.num_people} {booked.num_people === 1 ? "person" : "people"} · {booked.payment_method} · £{booked.num_people * exc.price}</div>
-                </div>
-              ) : (
-                <button onClick={() => { setBooking(exc); setError(""); }}
-                  style={{ width: "100%", padding: "11px", background: "linear-gradient(135deg,#c9a96e,#a07840)", borderRadius: 10, border: "none", color: "#1a1a2e", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-                  Book this excursion
-                </button>
-              )}
+              {(() => {
+                const deadlinePassed = isDeadlinePassed(exc.deadline);
+                if (booked) return (
+                  <div>
+                    <div style={{ background: "rgba(106,191,106,0.1)", border: "1px solid rgba(106,191,106,0.3)", borderRadius: 10, padding: "10px 14px", marginBottom: 8 }}>
+                      <div style={{ fontSize: 13, color: "#6abf6a", fontWeight: 600, marginBottom: 2 }}>✓ Booked — {booked.guest_names}</div>
+                      <div style={{ fontSize: 12, color: "#506070" }}>{booked.num_people} {booked.num_people === 1 ? "person" : "people"} · {booked.payment_method} · £{booked.num_people * exc.price}</div>
+                    </div>
+                    {!deadlinePassed ? (
+                      <button onClick={async () => { if (window.confirm("Remove your booking for this excursion?")) { try { await deleteBooking(booked.id); fetchData(); } catch(e) { console.error(e); } } }}
+                        style={{ width: "100%", padding: "9px", background: "#ff444415", border: "1px solid #ff444430", borderRadius: 10, color: "#ff6666", fontSize: 13, cursor: "pointer" }}>
+                        Cancel booking
+                      </button>
+                    ) : (
+                      <div style={{ fontSize: 11, color: "#506070", textAlign: "center", padding: "6px 0" }}>Booking deadline passed — contact your guide to make changes</div>
+                    )}
+                  </div>
+                );
+                if (deadlinePassed) return (
+                  <div style={{ background: "#ffffff08", borderRadius: 10, padding: "10px 14px", textAlign: "center" }}>
+                    <div style={{ fontSize: 12, color: "#506070" }}>Booking deadline has passed</div>
+                  </div>
+                );
+                return (
+                  <button onClick={() => { setBooking(exc); setError(""); }}
+                    style={{ width: "100%", padding: "11px", background: "linear-gradient(135deg,#c9a96e,#a07840)", borderRadius: 10, border: "none", color: "#1a1a2e", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+                    Book this excursion
+                  </button>
+                );
+              })()}
             </div>
           </div>
         );
@@ -960,7 +1124,7 @@ const ExcursionsPage = ({ tour }) => {
 
       {/* Booking modal */}
       {booking && (
-        <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 1000, display: "flex", alignItems: "flex-end", padding: "0" }}>
+        <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 2000, display: "flex", alignItems: "flex-end", padding: "0" }}>
           <div style={{ background: "#1a2332", borderRadius: "20px 20px 0 0", padding: 24, width: "100%", maxWidth: 480, margin: "0 auto", border: "1px solid #c9a96e30" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, color: "#f0e6d3" }}>{booking.title}</div>
@@ -1496,6 +1660,7 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
                   <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, marginBottom: 6 }}>{day.title}</div>
                   <div style={{ fontSize: 20, fontWeight: 700, color: "#c9a96e", marginBottom: 16 }}>📍 {day.location}</div>
                   <ExcursionDayBanner tour={tour} dayLocation={day.location} dayDate={day.day} onViewExcursions={() => setActivePage("excursions")} />
+                  <ExcursionDayInline tour={tour} dayLocation={day.location} guestName={guestName} />
                   {/* Weather for this day's location */}
                   {day.location && <WeatherWidget location={day.location.split('-')[0].split('–')[0].trim()} />}
                   <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, color: "#c9a96e", marginBottom: 14 }}>Today's Schedule</div>

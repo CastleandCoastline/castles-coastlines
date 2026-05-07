@@ -323,7 +323,7 @@ const CoachSeatingPlan = ({ tour, guestName, isGuide }) => {
                     <div title={occupied ? `Seat ${seatNum} — ${occupied}` : `Seat ${seatNum} — Available`}
                       style={{ width: 44, height: 46, borderRadius: 8, background: isMySeat ? "#c9a96e" : occupied ? "#2a4a6b" : "#0d1520", border: `1px solid ${isMySeat ? "#c9a96e" : occupied ? "#3a6a9b" : "#ffffff15"}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "default", transition: "all 0.2s", gap: 1 }}>
                       {/* Seat number always visible at top */}
-                      <div style={{ fontSize: 9, color: isMySeat ? "#1a1a2e" : occupied ? "#6080a0" : "#304050", fontWeight: 700, lineHeight: 1 }}>{seatNum}</div>
+                      <div style={{ fontSize: 11, color: isMySeat ? "#1a1a2e" : occupied ? "#6080a0" : "#304050", fontWeight: 700, lineHeight: 1 }}>{seatNum}</div>
                       {isMySeat && <div style={{ fontSize: 13 }}>⭐</div>}
                       {occupied && !isMySeat && (
                         <div style={{ fontSize: 9, color: "#8090a0", textAlign: "center", padding: "0 2px", lineHeight: 1.2, maxWidth: 42, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -777,6 +777,7 @@ const ExcursionEditor = ({ excursion, tourId, onSave, onClose, saving }) => {
           <div style={{ flex: 1 }}>{inp("Booking Deadline", e.deadline, v => setE({...e, deadline: v}), "e.g. 17 May")}</div>
         </div>
         {inp("Sort Order", e.sort_order, v => setE({...e, sort_order: parseInt(v) || 0}), "0", "number")}
+        {inp("Tour Day Override (optional)", e.tour_day || "", v => setE({...e, tour_day: parseInt(v) || null}), "e.g. 3 — overrides date matching", "number")}
 
         <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
           <button onClick={onClose} style={{ flex: 1, padding: "12px", background: "transparent", border: "1px solid #ffffff20", borderRadius: 12, color: "#8090a0", fontSize: 14, cursor: "pointer" }}>Cancel</button>
@@ -838,7 +839,7 @@ const ExcursionSummary = ({ excursion, bookings, onClose, onDeleteBooking }) => 
 };
 
 // ── Excursion Day Inline (bottom of itinerary) ───────────────────────────────
-const ExcursionDayInline = ({ tour, dayLocation, guestName }) => {
+const ExcursionDayInline = ({ tour, dayLocation, guestName, dayIdx }) => {
   const [excursions, setExcursions] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [booking, setBooking] = useState(null);
@@ -851,7 +852,30 @@ const ExcursionDayInline = ({ tour, dayLocation, guestName }) => {
   const fetchData = async () => {
     try {
       const [exc, book] = await Promise.all([loadExcursions(tour.id), loadBookings(tour.id)]);
+      // Match by tour_day override first, then by calendar date, then by location
+      const tourStartDate = tour.start_date ? new Date(tour.start_date) : null;
       const relevant = exc.filter(e => {
+        // Manual day override on excursion
+        if (e.tour_day) {
+          if (!tourStartDate) return false;
+          const excDate = new Date(tourStartDate);
+          excDate.setDate(excDate.getDate() + e.tour_day - 1);
+          const today = new Date();
+          return excDate.toDateString() === today.toDateString() ||
+            (dayIdx !== undefined && e.tour_day === dayIdx + 1);
+        }
+        // Match by excursion date string vs tour calendar date
+        if (e.date && tourStartDate) {
+          try {
+            const excCal = new Date(`${e.date} ${new Date().getFullYear()}`);
+            if (!isNaN(excCal)) {
+              // Find which day of tour this date falls on
+              const tourDay = Math.round((excCal - tourStartDate) / 86400000);
+              return tourDay === dayIdx;
+            }
+          } catch(err) {}
+        }
+        // Fallback: location matching
         if (!e.location || !dayLocation) return false;
         const excLoc = e.location.toLowerCase().trim();
         const dayLoc = dayLocation.split('-')[0].split('–')[0].split(',')[0].toLowerCase().trim();
@@ -1180,6 +1204,111 @@ const ExcursionsPage = ({ tour, guestName }) => {
   );
 };
 
+// ── Combined Contact & Emergency Page ────────────────────────────────────────
+const ContactAndEmergencyPage = ({ tour }) => {
+  const hasContact = tour.guide_name || tour.guide_phone || tour.guide_email;
+  const [location, setLocation] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [permissionDenied, setPermissionDenied] = useState(false);
+
+  const FACILITY_TYPES = [
+    { key: "hospital", label: "Hospital / A&E", icon: "🏥", search: "hospital" },
+    { key: "pharmacy", label: "Pharmacy", icon: "💊", search: "pharmacy" },
+    { key: "police", label: "Police Station", icon: "🚓", search: "police+station" },
+    { key: "doctors", label: "GP / Doctor", icon: "👨‍⚕️", search: "GP+doctor" },
+  ];
+
+  const requestLocation = () => {
+    setLoading(true); setError("");
+    navigator.geolocation.getCurrentPosition(
+      pos => { setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setLoading(false); },
+      err => { setLoading(false); if (err.code === 1) setPermissionDenied(true); else setError("Could not get location. Please try again."); },
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+    );
+  };
+
+  return (
+    <div style={{ padding: 24 }}>
+      {/* Guide Contact */}
+      <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Contact</div>
+      <div style={{ color: "#7080a0", fontSize: 13, marginBottom: 20 }}>Your guide & emergency services</div>
+
+      {hasContact ? (
+        <div style={{ background: "#1a2332", borderRadius: 16, padding: "18px 20px", border: "1px solid #c9a96e30", marginBottom: 20 }}>
+          <div style={{ fontSize: 12, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600, marginBottom: 14 }}>Your Guide</div>
+          {tour.guide_name && <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 700, marginBottom: 14 }}>{tour.guide_name}</div>}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {tour.guide_phone && <a href={`tel:${tour.guide_phone}`} style={{ display: "flex", alignItems: "center", gap: 12, background: "#0d1520", borderRadius: 12, padding: "12px 16px", textDecoration: "none", border: "1px solid #ffffff10" }}>
+              <span style={{ fontSize: 22 }}>📞</span>
+              <div style={{ flex: 1 }}><div style={{ fontSize: 11, color: "#607080", marginBottom: 2 }}>Call guide</div><div style={{ fontSize: 16, fontWeight: 600, color: "#f0e6d3" }}>{tour.guide_phone}</div></div>
+              <span style={{ color: "#c9a96e" }}>→</span>
+            </a>}
+            {tour.guide_email && <a href={`mailto:${tour.guide_email}`} style={{ display: "flex", alignItems: "center", gap: 12, background: "#0d1520", borderRadius: 12, padding: "12px 16px", textDecoration: "none", border: "1px solid #ffffff10" }}>
+              <span style={{ fontSize: 22 }}>✉️</span>
+              <div style={{ flex: 1 }}><div style={{ fontSize: 11, color: "#607080", marginBottom: 2 }}>Email guide</div><div style={{ fontSize: 14, color: "#f0e6d3" }}>{tour.guide_email}</div></div>
+              <span style={{ color: "#c9a96e" }}>→</span>
+            </a>}
+          </div>
+        </div>
+      ) : (
+        <div style={{ textAlign: "center", padding: "24px 20px", color: "#405060", border: "1px dashed #ffffff15", borderRadius: 16, marginBottom: 20 }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>📞</div><div>Contact details coming soon</div>
+        </div>
+      )}
+
+      {/* Emergency Numbers */}
+      <div style={{ background: "#2a1a1a", borderRadius: 14, padding: 16, border: "1px solid #ff444430", marginBottom: 20 }}>
+        <div style={{ fontSize: 12, color: "#ff6666", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600, marginBottom: 12 }}>Emergency Numbers</div>
+        {[["🚨", "999", "UK Emergency", "Police, Fire, Ambulance"], ["🚨", "112", "EU Emergency", "Works across Europe"], ["🏥", "111", "NHS Non-Emergency", "Medical advice (UK)"]].map(([icon, num, label, desc]) => (
+          <div key={num} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 18 }}>{icon}</span>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "#f0e6d3" }}>{num} — {label}</div>
+                <div style={{ fontSize: 11, color: "#7080a0" }}>{desc}</div>
+              </div>
+            </div>
+            <a href={`tel:${num}`} style={{ background: "#ff444420", border: "1px solid #ff444440", borderRadius: 8, padding: "6px 14px", color: "#ff6666", fontWeight: 700, fontSize: 13, textDecoration: "none" }}>Call</a>
+          </div>
+        ))}
+      </div>
+
+      {/* GPS Facilities */}
+      <div style={{ fontSize: 12, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600, marginBottom: 12 }}>Find Nearby Facilities</div>
+      {!location && !loading && (
+        <div style={{ textAlign: "center", padding: "20px", background: "#1a2332", borderRadius: 14, border: "1px solid #ffffff10", marginBottom: 12 }}>
+          <div style={{ fontSize: 13, color: "#8090a0", marginBottom: 14, lineHeight: 1.6 }}>Tap below to find the nearest hospital, pharmacy, police station and GP based on your location</div>
+          {permissionDenied
+            ? <div style={{ color: "#ff6666", fontSize: 13 }}>Location permission denied. Please enable in Settings → Safari → Location.</div>
+            : <button onClick={requestLocation} style={{ padding: "10px 20px", background: "linear-gradient(135deg,#c9a96e,#a07840)", borderRadius: 10, border: "none", color: "#1a1a2e", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>📍 Use My Location</button>}
+        </div>
+      )}
+      {loading && <div style={{ textAlign: "center", padding: "20px", color: "#607080" }}>📍 Getting your location…</div>}
+      {error && <div style={{ color: "#ff8888", fontSize: 13, textAlign: "center", marginBottom: 12 }}>{error}</div>}
+      {location && (
+        <div>
+          <div style={{ fontSize: 12, color: "#506070", marginBottom: 10 }}>Tap to open Google Maps near your current location</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {FACILITY_TYPES.map((f, i) => (
+              <a key={i} href={`https://www.google.com/maps/search/${f.search}/@${location.lat},${location.lng},14z`} target="_blank" rel="noopener noreferrer"
+                style={{ background: "#1a2332", borderRadius: 12, padding: "14px 16px", border: "1px solid #ffffff10", display: "flex", alignItems: "center", gap: 12, textDecoration: "none" }}>
+                <span style={{ fontSize: 28, flexShrink: 0 }}>{f.icon}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "#f0e6d3" }}>{f.label}</div>
+                  <div style={{ fontSize: 12, color: "#506070" }}>Opens Google Maps near you</div>
+                </div>
+                <span style={{ color: "#c9a96e", fontSize: 16 }}>→</span>
+              </a>
+            ))}
+          </div>
+          <button onClick={requestLocation} style={{ width: "100%", marginTop: 10, background: "none", border: "none", color: "#506070", fontSize: 12, cursor: "pointer" }}>🔄 Refresh location</button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ── Guest Login ───────────────────────────────────────────────────────────────
 const GuestLogin = ({ tours, onUnlock, onGuideLogin }) => {
   const [code, setCode] = useState(() => localStorage.getItem("cc_tour_code") || "");
@@ -1256,13 +1385,13 @@ const AnnouncementBanner = ({ text }) => {
 
 // ── Guest Nav ─────────────────────────────────────────────────────────────────
 const GuestNav = ({ active, onChange }) => {
-  const tabs = [{ id: "itinerary", icon: "🗓️", label: "Itinerary" }, { id: "coach", icon: "🚌", label: "Seats" }, { id: "photos", icon: "📸", label: "Photos" }, { id: "excursions", icon: "🎭", label: "Extras" }, { id: "info", icon: "💡", label: "Info" }, { id: "contact", icon: "📞", label: "Contact" }, { id: "emergency", icon: "🚑", label: "Emergency" }];
+  const tabs = [{ id: "itinerary", icon: "🗓️", label: "Itinerary" }, { id: "coach", icon: "🚌", label: "Seats" }, { id: "photos", icon: "📸", label: "Photos" }, { id: "excursions", icon: "🎭", label: "Extras" }, { id: "info", icon: "💡", label: "Info" }, { id: "contact", icon: "📞", label: "Contact" }];
   return (
     <div className="guest-nav" style={{ display: "flex", borderTop: "1px solid #ffffff10", background: "#0d1520", flexShrink: 0 }}>
       {tabs.map((tab) => (
-        <button key={tab.id} onClick={() => onChange(tab.id)} style={{ flex: 1, padding: "10px 2px 8px", background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, borderTop: `2px solid ${active === tab.id ? "#c9a96e" : "transparent"}` }}>
-          <span style={{ fontSize: 16 }}>{tab.icon}</span>
-          <span style={{ fontSize: 9, color: active === tab.id ? "#c9a96e" : "#506070", fontFamily: "'Lato',sans-serif", fontWeight: active === tab.id ? 700 : 400 }}>{tab.label}</span>
+        <button key={tab.id} onClick={() => onChange(tab.id)} style={{ flex: 1, padding: "12px 2px 10px", background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, borderTop: `2px solid ${active === tab.id ? "#c9a96e" : "transparent"}` }}>
+          <span style={{ fontSize: 18 }}>{tab.icon}</span>
+          <span style={{ fontSize: 11, color: active === tab.id ? "#c9a96e" : "#506070", fontFamily: "'Lato',sans-serif", fontWeight: active === tab.id ? 700 : 400 }}>{tab.label}</span>
         </button>
       ))}
     </div>
@@ -1278,7 +1407,7 @@ const ContactPage = ({ tour }) => {
       <div style={{ color: "#7080a0", fontSize: 13, marginBottom: 24 }}>Get in touch any time</div>
       {!hasContact ? <div style={{ textAlign: "center", padding: "40px 20px", color: "#405060", border: "1px dashed #ffffff15", borderRadius: 16 }}><div style={{ fontSize: 36, marginBottom: 10 }}>📞</div><div>Contact details coming soon</div></div>
         : <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {tour.guide_name && <div style={{ background: "#1a2332", borderRadius: 16, padding: 20, border: "1px solid #c9a96e20", display: "flex", alignItems: "center", gap: 16 }}><div style={{ width: 52, height: 52, borderRadius: "50%", background: "linear-gradient(135deg,#c9a96e,#a07840)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>🧭</div><div><div style={{ fontSize: 11, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", marginBottom: 3 }}>Your Tour Guide</div><div style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 700, color: "#f0e6d3" }}>{tour.guide_name}</div></div></div>}
+          {tour.guide_name && <div style={{ background: "#1a2332", borderRadius: 16, padding: 20, border: "1px solid #c9a96e20", display: "flex", alignItems: "center", gap: 16 }}><div style={{ width: 64, height: 64, borderRadius: "50%", background: "linear-gradient(135deg,#c9a96e,#a07840)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>🧭</div><div><div style={{ fontSize: 11, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", marginBottom: 3 }}>Your Tour Guide</div><div style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 700, color: "#f0e6d3" }}>{tour.guide_name}</div></div></div>}
           {tour.guide_phone && <a href={`tel:${tour.guide_phone}`} style={{ background: "#1a2332", borderRadius: 16, padding: "18px 20px", border: "1px solid #ffffff10", display: "flex", alignItems: "center", gap: 14, textDecoration: "none" }}><div style={{ width: 44, height: 44, borderRadius: 12, background: "#c9a96e20", border: "1px solid #c9a96e40", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>📱</div><div style={{ flex: 1 }}><div style={{ fontSize: 11, color: "#607080", letterSpacing: 1, textTransform: "uppercase", marginBottom: 2 }}>Phone</div><div style={{ fontSize: 17, fontWeight: 600, color: "#f0e6d3" }}>{tour.guide_phone}</div></div><div style={{ background: "linear-gradient(135deg,#c9a96e,#a07840)", borderRadius: 10, padding: "7px 14px", color: "#1a1a2e", fontWeight: 700, fontSize: 13 }}>Call</div></a>}
           {tour.guide_email && <a href={`mailto:${tour.guide_email}`} style={{ background: "#1a2332", borderRadius: 16, padding: "18px 20px", border: "1px solid #ffffff10", display: "flex", alignItems: "center", gap: 14, textDecoration: "none" }}><div style={{ width: 44, height: 44, borderRadius: 12, background: "#c9a96e20", border: "1px solid #c9a96e40", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>✉️</div><div style={{ flex: 1 }}><div style={{ fontSize: 11, color: "#607080", letterSpacing: 1, textTransform: "uppercase", marginBottom: 2 }}>Email</div><div style={{ fontSize: 15, fontWeight: 600, color: "#f0e6d3" }}>{tour.guide_email}</div></div><div style={{ background: "#c9a96e20", border: "1px solid #c9a96e40", borderRadius: 10, padding: "7px 14px", color: "#c9a96e", fontWeight: 700, fontSize: 13 }}>Email</div></a>}
         </div>}
@@ -1666,7 +1795,7 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline, guestName })
             <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 26, fontWeight: 700, color: "#f0e6d3", lineHeight: 1.1 }}>Castle & Coastline</div>
             <div style={{ fontSize: 11, letterSpacing: 2, color: "#c9a96e", textTransform: "uppercase", marginTop: 3 }}>Tours of the UK & Ireland</div>
           </div>
-          <button onClick={onLogout} style={{ background: "none", border: "1px solid #ffffff15", borderRadius: 8, color: "#506070", cursor: "pointer", fontSize: 11, padding: "4px 8px", flexShrink: 0 }}>← Exit</button>
+          <button onClick={() => { localStorage.removeItem("cc_guest_surname"); onLogout(); }} style={{ background: "none", border: "1px solid #ffffff15", borderRadius: 8, color: "#506070", cursor: "pointer", fontSize: 11, padding: "4px 8px", flexShrink: 0 }}>← Exit</button>
         </div>
         {/* Tour name and font slider on same row */}
         <div style={{ padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -1702,7 +1831,7 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline, guestName })
                   <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, marginBottom: 6 }}>{day.title}</div>
                   <div style={{ fontSize: 20, fontWeight: 700, color: "#c9a96e", marginBottom: 16 }}>📍 {day.location}</div>
                   <ExcursionDayBanner tour={tour} dayLocation={day.location} dayDate={day.day} onViewExcursions={() => setActivePage("excursions")} />
-                  <ExcursionDayInline tour={tour} dayLocation={day.location} guestName={guestName} />
+                  <ExcursionDayInline tour={tour} dayLocation={day.location} guestName={guestName} dayIdx={activeDay} />
                   {/* Weather for this day's location */}
                   {day.location && <WeatherWidget location={day.location.split('-')[0].split('–')[0].trim()} />}
                   <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, color: "#c9a96e", marginBottom: 14 }}>Today's Schedule</div>
@@ -1768,7 +1897,7 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline, guestName })
         {activePage === "info" && <UsefulInfoPage tour={tour} currentLocation={currentLocation} />}
         {activePage === "excursions" && <ExcursionsPage tour={tour} />}
         {activePage === "emergency" && <EmergencyPage />}
-        {activePage === "contact" && <ContactPage tour={tour} />}
+        {activePage === "contact" && <ContactAndEmergencyPage tour={tour} />}
       </div>
       <GuestNav active={activePage} onChange={setActivePage} />
     </div>
@@ -1904,10 +2033,27 @@ const ExcursionManager = ({ tour, onClose, onRefresh, showStatus }) => {
     setSaving(false);
   };
 
-  const handleDeleteExcursion = async (id) => {
-    if (!window.confirm("Delete this excursion?")) return;
-    try { await deleteExcursion(id); await fetchData(); showStatus("✓ Deleted"); }
-    catch (e) { showStatus("❌ Failed"); }
+  const [deletedExc, setDeletedExc] = useState(null);
+  const [undoTimer, setUndoTimer] = useState(null);
+
+  const handleDeleteExcursion = async (exc) => {
+    if (!window.confirm(`Delete "${exc.title}"?`)) return;
+    setDeletedExc(exc);
+    showStatus("Deleted — tap Undo to restore");
+    const timer = setTimeout(async () => {
+      try { await deleteExcursion(exc.id); await fetchData(); }
+      catch(e) { showStatus("❌ Failed to delete"); }
+      setDeletedExc(null);
+    }, 6000);
+    setUndoTimer(timer);
+    await fetchData();
+  };
+
+  const handleUndoDelete = () => {
+    if (undoTimer) clearTimeout(undoTimer);
+    setDeletedExc(null); setUndoTimer(null);
+    showStatus("✓ Restored");
+    fetchData();
   };
 
   const handleDeleteBooking = async (id) => {
@@ -1925,9 +2071,15 @@ const ExcursionManager = ({ tour, onClose, onRefresh, showStatus }) => {
         </div>
 
         <button onClick={() => setEditingExc({})}
-          style={{ width: "100%", padding: "11px", background: "#c9a96e15", border: "1px dashed #c9a96e50", borderRadius: 10, color: "#c9a96e", fontSize: 13, cursor: "pointer", marginBottom: 16 }}>
+          style={{ width: "100%", padding: "11px", background: "#c9a96e15", border: "1px dashed #c9a96e50", borderRadius: 10, color: "#c9a96e", fontSize: 13, cursor: "pointer", marginBottom: 12 }}>
           + Add New Excursion
         </button>
+        {deletedExc && (
+          <div style={{ background: "#2a3a2a", border: "1px solid #4a6a4a", borderRadius: 10, padding: "10px 14px", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ fontSize: 12, color: "#8aba8a" }}>"{deletedExc.title}" deleted</div>
+            <button onClick={handleUndoDelete} style={{ background: "#6abf6a20", border: "1px solid #6abf6a40", borderRadius: 6, padding: "4px 12px", color: "#6abf6a", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Undo</button>
+          </div>
+        )}
 
         {loading ? <div style={{ textAlign: "center", padding: 30, color: "#607080" }}>Loading…</div>
           : excursions.length === 0 ? <div style={{ textAlign: "center", padding: 30, color: "#405060" }}><div style={{ fontSize: 32, marginBottom: 8 }}>🎭</div><div>No excursions yet</div></div>
@@ -1944,7 +2096,7 @@ const ExcursionManager = ({ tour, onClose, onRefresh, showStatus }) => {
                   </div>
                   <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                     <button onClick={() => setEditingExc(exc)} style={{ background: "#c9a96e20", border: "1px solid #c9a96e40", borderRadius: 6, padding: "4px 10px", color: "#c9a96e", fontSize: 12, cursor: "pointer" }}>Edit</button>
-                    <button onClick={() => handleDeleteExcursion(exc.id)} style={{ background: "#ff444415", border: "1px solid #ff444430", borderRadius: 6, padding: "4px 8px", color: "#ff6666", fontSize: 12, cursor: "pointer" }}>×</button>
+                    <button onClick={() => handleDeleteExcursion(exc)} style={{ background: "#ff444415", border: "1px solid #ff444430", borderRadius: 6, padding: "4px 8px", color: "#ff6666", fontSize: 12, cursor: "pointer" }}>×</button>
                   </div>
                 </div>
                 <button onClick={() => setViewingBookings(exc)}

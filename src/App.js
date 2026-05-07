@@ -840,6 +840,7 @@ const ExcursionDayInline = ({ tour, dayLocation, guestName, dayIdx }) => {
   const [bookings, setBookings] = useState([]);
   const [booking, setBooking] = useState(null);
   const [guestNames, setGuestNames] = useState(guestName || "");
+  useEffect(() => { setGuestNames(guestName || ""); }, [guestName]);
   const [numPeople, setNumPeople] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState("Credit Card");
   const [submitting, setSubmitting] = useState(false);
@@ -882,15 +883,16 @@ const ExcursionDayInline = ({ tour, dayLocation, guestName, dayIdx }) => {
     } catch(e) { console.error(e); }
   };
 
-  useEffect(() => { fetchData(); }, [tour.id, dayLocation]);
+  useEffect(() => { fetchData(); }, [tour.id, dayLocation, guestName]);
 
   const myBooking = (excId) => {
     if (!guestName) return null;
     const surname = guestName.toLowerCase().trim();
     return bookings.find(b => {
       if (b.excursion_id !== excId) return false;
-      const names = b.guest_names.toLowerCase();
-      return names.split(/[&,\s]+/).some(n => n.trim() === surname);
+      const names = b.guest_names.toLowerCase().trim();
+      const nameParts = names.split(/[\s,&]+/).map(n => n.trim()).filter(Boolean);
+      return nameParts.includes(surname);
     });
   };
 
@@ -1018,7 +1020,7 @@ const ExcursionsPage = ({ tour, guestName }) => {
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, [tour.id]);
+  useEffect(() => { fetchData(); }, [tour.id, guestName]);
 
   const handleSubmitBooking = async () => {
     if (!guestNames.trim()) { setError("Please enter at least one name"); return; }

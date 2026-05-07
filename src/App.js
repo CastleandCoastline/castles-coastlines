@@ -851,7 +851,12 @@ const ExcursionDayInline = ({ tour, dayLocation, guestName }) => {
   const fetchData = async () => {
     try {
       const [exc, book] = await Promise.all([loadExcursions(tour.id), loadBookings(tour.id)]);
-      const relevant = exc.filter(e => e.location && dayLocation && e.location.toLowerCase().includes(dayLocation.split(',')[0].toLowerCase().split('-')[0].trim()));
+      const relevant = exc.filter(e => {
+        if (!e.location || !dayLocation) return false;
+        const excLoc = e.location.toLowerCase().trim();
+        const dayLoc = dayLocation.split('-')[0].split('–')[0].split(',')[0].toLowerCase().trim();
+        return excLoc.includes(dayLoc) || dayLoc.includes(excLoc);
+      });
       setExcursions(relevant);
       setBookings(book);
     } catch(e) { console.error(e); }
@@ -859,7 +864,7 @@ const ExcursionDayInline = ({ tour, dayLocation, guestName }) => {
 
   useEffect(() => { fetchData(); }, [tour.id, dayLocation]);
 
-  const myBooking = (excId) => bookings.find(b => b.excursion_id === excId && b.guest_names.toLowerCase().includes((guestName || "").toLowerCase().split(" ")[0]));
+  const myBooking = (excId) => bookings.find(b => b.excursion_id === excId && b.guest_names.toLowerCase().includes((guestName || "").toLowerCase()));
 
   const handleBook = async () => {
     if (!guestNames.trim()) { setError("Please enter your name"); return; }
@@ -1044,9 +1049,9 @@ const ExcursionsPage = ({ tour, guestName }) => {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Optional Excursions</div>
           {guestName && (
-            <button onClick={() => { localStorage.removeItem("cc_guest_name"); window.location.reload(); }}
+            <button onClick={() => { localStorage.removeItem("cc_guest_surname"); localStorage.removeItem("cc_tour_code"); window.location.reload(); }}
               style={{ background: "none", border: "1px solid #ffffff20", borderRadius: 8, padding: "4px 10px", color: "#607080", fontSize: 11, cursor: "pointer", flexShrink: 0 }}>
-              Not {guestName.split(" ")[0]}?
+              Not {guestName}?
             </button>
           )}
         </div>
@@ -1125,7 +1130,7 @@ const ExcursionsPage = ({ tour, guestName }) => {
       {/* Booking modal */}
       {booking && (
         <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 2000, display: "flex", alignItems: "flex-end", padding: "0" }}>
-          <div style={{ background: "#1a2332", borderRadius: "20px 20px 0 0", padding: 24, width: "100%", maxWidth: 480, margin: "0 auto", border: "1px solid #c9a96e30" }}>
+          <div style={{ background: "#1a2332", borderRadius: "20px 20px 0 0", padding: 24, paddingBottom: 40, width: "100%", maxWidth: 480, margin: "0 auto", border: "1px solid #c9a96e30", maxHeight: "90vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, color: "#f0e6d3" }}>{booking.title}</div>
               <button onClick={() => { setBooking(null); setError(""); }} style={{ background: "none", border: "none", color: "#607080", fontSize: 22, cursor: "pointer" }}>×</button>
@@ -1177,24 +1182,61 @@ const ExcursionsPage = ({ tour, guestName }) => {
 
 // ── Guest Login ───────────────────────────────────────────────────────────────
 const GuestLogin = ({ tours, onUnlock, onGuideLogin }) => {
-  const [code, setCode] = useState(""); const [error, setError] = useState(""); const [shake, setShake] = useState(false);
+  const [code, setCode] = useState(() => localStorage.getItem("cc_tour_code") || "");
+  const [surname, setSurname] = useState(() => localStorage.getItem("cc_guest_surname") || "");
+  const [error, setError] = useState("");
+  const [shake, setShake] = useState(false);
+
+  // Auto-login if we have saved credentials
+  useEffect(() => {
+    const savedCode = localStorage.getItem("cc_tour_code");
+    const savedSurname = localStorage.getItem("cc_guest_surname");
+    if (savedCode && savedSurname) {
+      if (savedCode.toUpperCase() === GUIDE_PASSWORD) { onGuideLogin(); return; }
+      const match = tours.find(t => t.password.toUpperCase() === savedCode.toUpperCase());
+      if (match) { onUnlock(match, savedSurname); }
+    }
+  }, [tours]);
+
   const tryUnlock = () => {
-    if (code.trim().toUpperCase() === GUIDE_PASSWORD) { onGuideLogin(); return; }
-    const match = tours.find((t) => t.password.toUpperCase() === code.trim().toUpperCase());
-    if (match) { onUnlock(match); } else { setError("That code doesn't match any tour. Please check with your guide."); setShake(true); setTimeout(() => setShake(false), 500); }
+    const trimCode = code.trim().toUpperCase();
+    const trimSurname = surname.trim();
+    if (!trimCode) { setError("Please enter your tour code"); return; }
+    if (trimCode === GUIDE_PASSWORD) { localStorage.setItem("cc_tour_code", trimCode); onGuideLogin(); return; }
+    if (!trimSurname) { setError("Please enter your last name"); return; }
+    const match = tours.find(t => t.password.toUpperCase() === trimCode);
+    if (match) {
+      localStorage.setItem("cc_tour_code", trimCode);
+      localStorage.setItem("cc_guest_surname", trimSurname);
+      onUnlock(match, trimSurname);
+    } else {
+      setError("That code doesn't match any tour — please check with your guide.");
+      setShake(true); setTimeout(() => setShake(false), 500);
+    }
   };
+
+  const inp = (val, fn, ph, extra = {}) => (
+    <input value={val} onChange={e => { fn(e.target.value); setError(""); }}
+      onKeyDown={e => e.key === "Enter" && tryUnlock()} placeholder={ph}
+      style={{ width: "100%", textAlign: "center", fontSize: 18, fontWeight: 600, padding: "13px 12px", borderRadius: 12, border: `2px solid ${error ? "#ff4444" : "#c9a96e40"}`, background: "#1a2332", color: "#f0e6d3", outline: "none", marginBottom: 10, transition: "border-color 0.2s", ...extra }} />
+  );
+
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(160deg,#0d1520 0%,#1a2332 60%,#0d1520 100%)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, fontFamily: "'Lato',sans-serif" }}>
-      <img src="/logo-app.png" alt="Castle & Coastline Tours" style={{ width: 180, height: 180, objectFit: "contain", marginBottom: 8 }} />
-      <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 26, color: "#f0e6d3", textAlign: "center", marginBottom: 8 }}>Welcome</div>
-      <div style={{ color: "#607080", fontSize: 14, textAlign: "center", marginBottom: 40, maxWidth: 280, lineHeight: 1.6 }}>Enter the access code provided by your tour guide</div>
-      <div style={{ width: "100%", maxWidth: 320 }}>
-        <input value={code} onChange={(e) => { setCode(e.target.value.toUpperCase()); setError(""); }} onKeyDown={(e) => e.key === "Enter" && tryUnlock()} placeholder="TOURCODE" maxLength={12}
-          style={{ width: "100%", textAlign: "center", fontSize: 24, fontWeight: 700, letterSpacing: 6, padding: "16px 12px", borderRadius: 14, border: `2px solid ${error ? "#ff4444" : "#c9a96e40"}`, background: "#1a2332", color: "#f0e6d3", outline: "none", fontFamily: "monospace", marginBottom: 12, transform: shake ? "translateX(-6px)" : "none", transition: "transform 0.1s, border-color 0.2s" }} />
-        {error && <div style={{ color: "#ff6666", fontSize: 13, textAlign: "center", marginBottom: 12 }}>{error}</div>}
-        <button onClick={tryUnlock} style={{ width: "100%", padding: "14px", background: "linear-gradient(135deg,#c9a96e,#a07840)", borderRadius: 14, border: "none", color: "#1a1a2e", fontWeight: 700, fontSize: 16, cursor: "pointer" }}>Access My Tour →</button>
+      <img src="/logo-app.png" alt="Castle & Coastline Tours" style={{ width: 160, height: 160, objectFit: "contain", marginBottom: 12 }} />
+      <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 26, color: "#f0e6d3", textAlign: "center", marginBottom: 6 }}>Welcome</div>
+      <div style={{ color: "#607080", fontSize: 13, textAlign: "center", marginBottom: 32, maxWidth: 280, lineHeight: 1.6 }}>Enter your tour code and last name to access your tour</div>
+      <div style={{ width: "100%", maxWidth: 320, transform: shake ? "translateX(-6px)" : "none", transition: "transform 0.1s" }}>
+        <label style={{ fontSize: 11, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Tour Code</label>
+        {inp(code, v => setCode(v.toUpperCase()), "e.g. HIGHLANDS2025", { fontFamily: "monospace", letterSpacing: 4, fontSize: 20, fontWeight: 700 })}
+        <label style={{ fontSize: 11, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Last Name</label>
+        {inp(surname, setSurname, "e.g. Smith")}
+        {error && <div style={{ color: "#ff6666", fontSize: 13, textAlign: "center", marginBottom: 10 }}>{error}</div>}
+        <button onClick={tryUnlock} style={{ width: "100%", padding: "14px", background: "linear-gradient(135deg,#c9a96e,#a07840)", borderRadius: 14, border: "none", color: "#1a1a2e", fontWeight: 700, fontSize: 16, cursor: "pointer", marginTop: 4 }}>
+          Access My Tour →
+        </button>
       </div>
-      <div style={{ marginTop: 48, background: "#1a2332", borderRadius: 14, padding: "14px 18px", maxWidth: 300, border: "1px solid #ffffff10" }}>
+      <div style={{ marginTop: 40, background: "#1a2332", borderRadius: 14, padding: "14px 18px", maxWidth: 300, border: "1px solid #ffffff10" }}>
         <div style={{ fontSize: 12, color: "#506070", textAlign: "center", lineHeight: 1.7 }}>📲 <strong style={{ color: "#8090a0" }}>Add to your home screen</strong> for quick access<br /><span style={{ fontSize: 11 }}>Tap Share → "Add to Home Screen" in Safari</span></div>
       </div>
     </div>

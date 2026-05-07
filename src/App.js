@@ -1399,22 +1399,6 @@ const GuestNav = ({ active, onChange }) => {
 };
 
 // ── Contact Page ──────────────────────────────────────────────────────────────
-const ContactPage = ({ tour }) => {
-  const hasContact = tour.guide_name || tour.guide_phone || tour.guide_email;
-  return (
-    <div style={{ padding: 24 }}>
-      <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Your Guide</div>
-      <div style={{ color: "#7080a0", fontSize: 13, marginBottom: 24 }}>Get in touch any time</div>
-      {!hasContact ? <div style={{ textAlign: "center", padding: "40px 20px", color: "#405060", border: "1px dashed #ffffff15", borderRadius: 16 }}><div style={{ fontSize: 36, marginBottom: 10 }}>📞</div><div>Contact details coming soon</div></div>
-        : <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {tour.guide_name && <div style={{ background: "#1a2332", borderRadius: 16, padding: 20, border: "1px solid #c9a96e20", display: "flex", alignItems: "center", gap: 16 }}><div style={{ width: 64, height: 64, borderRadius: "50%", background: "linear-gradient(135deg,#c9a96e,#a07840)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>🧭</div><div><div style={{ fontSize: 11, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", marginBottom: 3 }}>Your Tour Guide</div><div style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 700, color: "#f0e6d3" }}>{tour.guide_name}</div></div></div>}
-          {tour.guide_phone && <a href={`tel:${tour.guide_phone}`} style={{ background: "#1a2332", borderRadius: 16, padding: "18px 20px", border: "1px solid #ffffff10", display: "flex", alignItems: "center", gap: 14, textDecoration: "none" }}><div style={{ width: 44, height: 44, borderRadius: 12, background: "#c9a96e20", border: "1px solid #c9a96e40", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>📱</div><div style={{ flex: 1 }}><div style={{ fontSize: 11, color: "#607080", letterSpacing: 1, textTransform: "uppercase", marginBottom: 2 }}>Phone</div><div style={{ fontSize: 17, fontWeight: 600, color: "#f0e6d3" }}>{tour.guide_phone}</div></div><div style={{ background: "linear-gradient(135deg,#c9a96e,#a07840)", borderRadius: 10, padding: "7px 14px", color: "#1a1a2e", fontWeight: 700, fontSize: 13 }}>Call</div></a>}
-          {tour.guide_email && <a href={`mailto:${tour.guide_email}`} style={{ background: "#1a2332", borderRadius: 16, padding: "18px 20px", border: "1px solid #ffffff10", display: "flex", alignItems: "center", gap: 14, textDecoration: "none" }}><div style={{ width: 44, height: 44, borderRadius: 12, background: "#c9a96e20", border: "1px solid #c9a96e40", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>✉️</div><div style={{ flex: 1 }}><div style={{ fontSize: 11, color: "#607080", letterSpacing: 1, textTransform: "uppercase", marginBottom: 2 }}>Email</div><div style={{ fontSize: 15, fontWeight: 600, color: "#f0e6d3" }}>{tour.guide_email}</div></div><div style={{ background: "#c9a96e20", border: "1px solid #c9a96e40", borderRadius: 10, padding: "7px 14px", color: "#c9a96e", fontWeight: 700, fontSize: 13 }}>Email</div></a>}
-        </div>}
-    </div>
-  );
-};
-
 // ── Local Phrases by region ───────────────────────────────────────────────────
 const PHRASES = {
   scotland: {

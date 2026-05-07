@@ -310,28 +310,28 @@ const CoachSeatingPlan = ({ tour, guestName, isGuide }) => {
         {/* Seat grid */}
         <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
           {Array.from({ length: rows }).map((_, r) => (
-            <div key={r} style={{ display: "flex", gap: 8, width: "100%" }}>
+            <div key={r} style={{ display: "flex", gap: 6, width: "100%", alignItems: "center" }}>
               {Array.from({ length: cols }).map((_, c) => {
                 const seatNum = r * cols + c + 1;
                 const seat = getSeat(r, c);
                 const occupied = seat?.guest_name;
                 const isMySeat = occupied && guestName && occupied.toLowerCase() === guestName.toLowerCase();
+                const isAisle = cols === 4 && c === 1;
                 return (
-                  <div key={c} style={{ display: "flex", alignItems: "center", flex: c === 1 && cols === 4 ? "0 0 auto" : 1 }}>
-                    {/* Aisle gap */}
-                    {cols === 4 && c === 2 && <div style={{ width: 16, flexShrink: 0 }} />}
+                  <React.Fragment key={c}>
                     <div title={occupied ? `Seat ${seatNum} — ${occupied}` : `Seat ${seatNum} — Available`}
                       style={{ flex: 1, minHeight: 80, borderRadius: 10, background: isMySeat ? "#c9a96e" : occupied ? "#2a4a6b" : "#0d1520", border: `2px solid ${isMySeat ? "#c9a96e" : occupied ? "#3a6a9b" : "#ffffff15"}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "default", transition: "all 0.2s", gap: 2, padding: "6px 2px" }}>
                       <div style={{ fontSize: 13, color: isMySeat ? "#1a1a2e" : occupied ? "#a0c0e0" : "#506070", fontWeight: 700, lineHeight: 1 }}>{seatNum}</div>
                       {isMySeat && <div style={{ fontSize: 16 }}>⭐</div>}
                       {occupied && !isMySeat && (
-                        <div style={{ fontSize: 11, color: "#a0c0e0", textAlign: "center", padding: "0 3px", lineHeight: 1.3, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <div style={{ fontSize: 11, color: "#a0c0e0", textAlign: "center", padding: "0 3px", lineHeight: 1.3, width: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {occupied.split(" ")[0]}
                         </div>
                       )}
                       {!occupied && <div style={{ fontSize: 9, color: "#304050" }}>○</div>}
                     </div>
-                  </div>
+                    {isAisle && <div style={{ width: 20, flexShrink: 0 }} />}
+                  </React.Fragment>
                 );
               })}
             </div>
@@ -947,7 +947,7 @@ const ExcursionDayInline = ({ tour, dayLocation, guestName, dayIdx }) => {
 
       {booking && (
         <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 3000, display: "flex", alignItems: "flex-end" }}>
-          <div style={{ background: "#1a2332", borderRadius: "20px 20px 0 0", padding: 24, paddingBottom: 48, width: "100%", maxWidth: 480, margin: "0 auto", border: "1px solid #c9a96e30", maxHeight: "85vh", overflowY: "auto" }}>
+          <div style={{ background: "#1a2332", borderRadius: "20px 20px 0 0", padding: 24, paddingBottom: 60, width: "100%", maxWidth: 480, margin: "0 auto", border: "1px solid #c9a96e30", maxHeight: "88vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, color: "#f0e6d3" }}>{booking.title}</div>
               <button onClick={() => { setBooking(null); setError(""); }} style={{ background: "none", border: "none", color: "#607080", fontSize: 22, cursor: "pointer" }}>×</button>
@@ -1153,7 +1153,7 @@ const ExcursionsPage = ({ tour, guestName }) => {
       {/* Booking modal */}
       {booking && (
         <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 3000, display: "flex", alignItems: "flex-end", padding: "0" }}>
-          <div style={{ background: "#1a2332", borderRadius: "20px 20px 0 0", padding: 24, paddingBottom: 48, width: "100%", maxWidth: 480, margin: "0 auto", border: "1px solid #c9a96e30", maxHeight: "85vh", overflowY: "auto" }}>
+          <div style={{ background: "#1a2332", borderRadius: "20px 20px 0 0", padding: 24, paddingBottom: 60, width: "100%", maxWidth: 480, margin: "0 auto", border: "1px solid #c9a96e30", maxHeight: "88vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, color: "#f0e6d3" }}>{booking.title}</div>
               <button onClick={() => { setBooking(null); setError(""); }} style={{ background: "none", border: "none", color: "#607080", fontSize: 22, cursor: "pointer" }}>×</button>
@@ -1825,7 +1825,6 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline, guestName })
                 <div style={{ padding: 24 }}>
                   <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, marginBottom: 6 }}>{day.title}</div>
                   <div style={{ fontSize: 20, fontWeight: 700, color: "#c9a96e", marginBottom: 16 }}>📍 {day.location}</div>
-                  <ExcursionDayBanner tour={tour} dayLocation={day.location} dayDate={day.day} onViewExcursions={() => setActivePage("excursions")} />
                   <ExcursionDayInline tour={tour} dayLocation={day.location} guestName={guestName} dayIdx={activeDay} />
                   {/* Weather for this day's location */}
                   {day.location && <WeatherWidget location={day.location.split('-')[0].split('–')[0].trim()} />}

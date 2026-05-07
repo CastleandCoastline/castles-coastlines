@@ -955,7 +955,7 @@ const ExcursionDayInline = ({ tour, dayLocation, guestName, dayIdx }) => {
           <div style={{ background: "#1a2332", borderRadius: "20px 20px 0 0", padding: 24, paddingBottom: 60, width: "100%", maxWidth: 480, margin: "0 auto", border: "1px solid #c9a96e30", maxHeight: "88vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, color: "#f0e6d3" }}>{booking.title}</div>
-              <button onClick={() => { setBooking(null); setError(""); }} style={{ background: "none", border: "none", color: "#607080", fontSize: 22, cursor: "pointer" }}>×</button>
+              <button onClick={() => { setBooking(null); setError(""); setGuestNames(guestName || ""); setNumPeople(1); }} style={{ background: "none", border: "none", color: "#607080", fontSize: 22, cursor: "pointer" }}>×</button>
             </div>
             <div style={{ marginBottom: 14 }}>
               <label style={{ fontSize: 11, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Name(s)</label>
@@ -1055,7 +1055,7 @@ const ExcursionsPage = ({ tour, guestName }) => {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Optional Excursions</div>
           {guestName && (
-            <button onClick={() => { localStorage.removeItem("cc_guest_surname"); localStorage.removeItem("cc_tour_code"); window.location.reload(); }}
+            <button onClick={() => { localStorage.removeItem("cc_guest_surname"); window.location.reload(); }}
               style={{ background: "none", border: "1px solid #ffffff20", borderRadius: 8, padding: "4px 10px", color: "#607080", fontSize: 11, cursor: "pointer", flexShrink: 0 }}>
               Not {guestName}?
             </button>
@@ -1139,7 +1139,7 @@ const ExcursionsPage = ({ tour, guestName }) => {
           <div style={{ background: "#1a2332", borderRadius: "20px 20px 0 0", padding: 24, paddingBottom: 60, width: "100%", maxWidth: 480, margin: "0 auto", border: "1px solid #c9a96e30", maxHeight: "88vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, color: "#f0e6d3" }}>{booking.title}</div>
-              <button onClick={() => { setBooking(null); setError(""); }} style={{ background: "none", border: "none", color: "#607080", fontSize: 22, cursor: "pointer" }}>×</button>
+              <button onClick={() => { setBooking(null); setError(""); setGuestNames(guestName || ""); setNumPeople(1); }} style={{ background: "none", border: "none", color: "#607080", fontSize: 22, cursor: "pointer" }}>×</button>
             </div>
 
             <div style={{ marginBottom: 14 }}>

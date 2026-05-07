@@ -1582,7 +1582,7 @@ const EmergencyPage = () => {
 };
 
 // ── Guest View ────────────────────────────────────────────────────────────────
-const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline }) => {
+const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline, guestName }) => {
   const [activePage, setActivePage] = useState(startPage || "itinerary");
   const [fontScale, setFontScale] = useState(1);
   const fs = (size) => Math.round(size * fontScale);

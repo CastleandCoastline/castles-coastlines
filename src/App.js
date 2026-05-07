@@ -884,7 +884,15 @@ const ExcursionDayInline = ({ tour, dayLocation, guestName, dayIdx }) => {
 
   useEffect(() => { fetchData(); }, [tour.id, dayLocation]);
 
-  const myBooking = (excId) => bookings.find(b => b.excursion_id === excId && b.guest_names.toLowerCase().includes((guestName || "").toLowerCase()));
+  const myBooking = (excId) => {
+    if (!guestName) return null;
+    const surname = guestName.toLowerCase().trim();
+    return bookings.find(b => {
+      if (b.excursion_id !== excId) return false;
+      const names = b.guest_names.toLowerCase();
+      return names.split(/[&,\s]+/).some(n => n.trim() === surname);
+    });
+  };
 
   const handleBook = async () => {
     if (!guestNames.trim()) { setError("Please enter your name"); return; }

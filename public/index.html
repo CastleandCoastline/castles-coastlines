@@ -10,7 +10,13 @@
       content="Web site created using create-react-app"
     />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-  <link rel="preload" href="%PUBLIC_URL%/logo-app.png" as="image" />
+  <link rel="preload" href="%PUBLIC_URL%/logo-app.png" as="image" fetchpriority="high" />
+  <link rel="dns-prefetch" href="https://pukdpnkgsyewvbswoqyo.supabase.co" />
+  <link rel="preconnect" href="https://pukdpnkgsyewvbswoqyo.supabase.co" />
+  <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Lato:wght@300;400;600;700&display=swap" rel="stylesheet" />
     <!--
       manifest.json provides metadata used when your web app is installed on a
       user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
@@ -29,7 +35,14 @@
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Inline splash — shows instantly before JS loads, fixes FCP/LCP -->
+      <div id="splash" style="min-height:100vh;background:#0d1520;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;">
+        <img src="/logo-app.png" alt="Castle and Coastline" width="140" height="140" style="object-fit:contain;" fetchpriority="high" />
+        <div style="font-size:11px;letter-spacing:4px;color:#c9a96e;text-transform:uppercase;margin-top:16px;">Castle &amp; Coastline</div>
+        <div style="color:#405060;font-size:13px;margin-top:8px;">Loading your tour...</div>
+      </div>
+    </div>
     <!--
       This HTML file is a template.
       If you open it directly in the browser, you will see an empty page.

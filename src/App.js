@@ -1873,7 +1873,7 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline, guestName })
         {activePage === "coach" && <CoachSeatingPlan tour={tour} guestName={null} isGuide={isGuide} />}
         {activePage === "photos" && <PhotoLibrary tour={tour} isGuide={isGuide} />}
         {activePage === "info" && <UsefulInfoPage tour={tour} currentLocation={currentLocation} />}
-        {activePage === "excursions" && <ExcursionsPage tour={tour} />}
+        {activePage === "excursions" && <ExcursionsPage tour={tour} guestName={guestName} />}
         {activePage === "emergency" && <EmergencyPage />}
         {activePage === "contact" && <ContactAndEmergencyPage tour={tour} />}
       </div>

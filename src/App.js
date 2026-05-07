@@ -2275,6 +2275,7 @@ export default function App() {
   const [view, setView] = useState("login");
   const [guestTourId, setGuestTourId] = useState(null);
   const [guestStartPage, setGuestStartPage] = useState("itinerary");
+  const [guestName, setGuestName] = useState(() => localStorage.getItem("cc_guest_surname") || "");
   const [isGuide, setIsGuide] = useState(false);
 
   const [isOffline, setIsOffline] = useState(false);
@@ -2378,7 +2379,7 @@ export default function App() {
                 📵 You're offline — using saved tour data
               </div>
             )}
-            <GuestLogin tours={tours} onUnlock={(tour) => { setGuestTourId(tour.id); setGuestStartPage("itinerary"); setView("guest"); }} onGuideLogin={() => { setIsGuide(true); setView("guide"); }} />
+            <GuestLogin tours={tours} onUnlock={(tour, surname) => { setGuestTourId(tour.id); setGuestStartPage("itinerary"); setGuestName(surname); setView("guest"); }} onGuideLogin={() => { setIsGuide(true); setView("guide"); }} />
           </>
         )}
         {view === "guide" && isGuide && <GuideDashboard tours={tours} onLogout={() => { setIsGuide(false); setView("login"); }} onRefresh={fetchTours} onViewTour={handleViewTour} />}

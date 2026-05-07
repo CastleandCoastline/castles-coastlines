@@ -985,7 +985,7 @@ const ExcursionDayBanner = ({ tour, dayLocation, onViewExcursions }) => {
 };
 
 // ── Guest Excursions Page ─────────────────────────────────────────────────────
-const ExcursionsPage = ({ tour }) => {
+const ExcursionsPage = ({ tour, guestName }) => {
   const [excursions, setExcursions] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);

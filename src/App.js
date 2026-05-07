@@ -987,28 +987,6 @@ const ExcursionDayInline = ({ tour, dayLocation, guestName, dayIdx }) => {
 };
 
 // ── Excursion Day Banner ─────────────────────────────────────────────────────
-const ExcursionDayBanner = ({ tour, dayLocation, onViewExcursions }) => {
-  const [excursions, setExcursions] = useState([]);
-  useEffect(() => {
-    loadExcursions(tour.id).then(data => {
-      const relevant = data.filter(e => e.location && dayLocation && e.location.toLowerCase().includes(dayLocation.split(',')[0].toLowerCase().split('-')[0].trim()));
-      setExcursions(relevant);
-    }).catch(() => {});
-  }, [tour.id, dayLocation]);
-
-  if (excursions.length === 0) return null;
-  return (
-    <div onClick={onViewExcursions} style={{ background: "rgba(201,169,110,0.08)", border: "1px solid rgba(201,169,110,0.3)", borderRadius: 12, padding: "12px 16px", marginBottom: 20, cursor: "pointer", display: "flex", alignItems: "center", gap: 12 }}>
-      <span style={{ fontSize: 24, flexShrink: 0 }}>🎭</span>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: "#c9a96e" }}>{excursions.length} optional excursion{excursions.length !== 1 ? "s" : ""} available today</div>
-        <div style={{ fontSize: 12, color: "#8090a0", marginTop: 2 }}>{excursions.map(e => e.title).join(", ")}</div>
-      </div>
-      <span style={{ color: "#c9a96e", fontSize: 18 }}>→</span>
-    </div>
-  );
-};
-
 // ── Guest Excursions Page ─────────────────────────────────────────────────────
 const ExcursionsPage = ({ tour, guestName }) => {
   const [excursions, setExcursions] = useState([]);

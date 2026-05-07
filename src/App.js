@@ -318,7 +318,7 @@ const CoachSeatingPlan = ({ tour, guestName, isGuide }) => {
                 const isMySeat = occupied && guestName && occupied.toLowerCase() === guestName.toLowerCase();
                 const isAisle = cols === 4 && c === 1;
                 return (
-                  <React.Fragment key={c}>
+                  <div key={c} style={{ display: "flex", alignItems: "center", flex: 1 }}>
                     <div title={occupied ? `Seat ${seatNum} — ${occupied}` : `Seat ${seatNum} — Available`}
                       style={{ flex: 1, minHeight: 80, borderRadius: 10, background: isMySeat ? "#c9a96e" : occupied ? "#2a4a6b" : "#0d1520", border: `2px solid ${isMySeat ? "#c9a96e" : occupied ? "#3a6a9b" : "#ffffff15"}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "default", transition: "all 0.2s", gap: 2, padding: "6px 2px" }}>
                       <div style={{ fontSize: 13, color: isMySeat ? "#1a1a2e" : occupied ? "#a0c0e0" : "#506070", fontWeight: 700, lineHeight: 1 }}>{seatNum}</div>
@@ -330,8 +330,8 @@ const CoachSeatingPlan = ({ tour, guestName, isGuide }) => {
                       )}
                       {!occupied && <div style={{ fontSize: 9, color: "#304050" }}>○</div>}
                     </div>
-                    {isAisle && <div style={{ width: 20, flexShrink: 0 }} />}
-                  </React.Fragment>
+                  </div>
+                  {isAisle && <div key={`aisle-${r}`} style={{ width: 20, flexShrink: 0 }} />}
                 );
               })}
             </div>

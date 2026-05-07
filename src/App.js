@@ -316,23 +316,20 @@ const CoachSeatingPlan = ({ tour, guestName, isGuide }) => {
                 const seat = getSeat(r, c);
                 const occupied = seat?.guest_name;
                 const isMySeat = occupied && guestName && occupied.toLowerCase() === guestName.toLowerCase();
-                const isAisle = cols === 4 && c === 1;
-                return (
-                  <div key={c} style={{ display: "flex", alignItems: "center", flex: 1 }}>
-                    <div title={occupied ? `Seat ${seatNum} — ${occupied}` : `Seat ${seatNum} — Available`}
-                      style={{ flex: 1, minHeight: 80, borderRadius: 10, background: isMySeat ? "#c9a96e" : occupied ? "#2a4a6b" : "#0d1520", border: `2px solid ${isMySeat ? "#c9a96e" : occupied ? "#3a6a9b" : "#ffffff15"}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "default", transition: "all 0.2s", gap: 2, padding: "6px 2px" }}>
-                      <div style={{ fontSize: 13, color: isMySeat ? "#1a1a2e" : occupied ? "#a0c0e0" : "#506070", fontWeight: 700, lineHeight: 1 }}>{seatNum}</div>
-                      {isMySeat && <div style={{ fontSize: 16 }}>⭐</div>}
-                      {occupied && !isMySeat && (
-                        <div style={{ fontSize: 11, color: "#a0c0e0", textAlign: "center", padding: "0 3px", lineHeight: 1.3, width: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {occupied.split(" ")[0]}
-                        </div>
-                      )}
-                      {!occupied && <div style={{ fontSize: 9, color: "#304050" }}>○</div>}
-                    </div>
-                  </div>
-                  {isAisle && <div key={`aisle-${r}`} style={{ width: 20, flexShrink: 0 }} />}
-                );
+                return [
+                  <div key={`seat-${c}`} title={occupied ? `Seat ${seatNum} — ${occupied}` : `Seat ${seatNum} — Available`}
+                    style={{ flex: 1, minHeight: 80, borderRadius: 10, background: isMySeat ? "#c9a96e" : occupied ? "#2a4a6b" : "#0d1520", border: `2px solid ${isMySeat ? "#c9a96e" : occupied ? "#3a6a9b" : "#ffffff15"}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "default", transition: "all 0.2s", gap: 2, padding: "6px 2px" }}>
+                    <div style={{ fontSize: 13, color: isMySeat ? "#1a1a2e" : occupied ? "#a0c0e0" : "#506070", fontWeight: 700, lineHeight: 1 }}>{seatNum}</div>
+                    {isMySeat && <div style={{ fontSize: 16 }}>⭐</div>}
+                    {occupied && !isMySeat && (
+                      <div style={{ fontSize: 11, color: "#a0c0e0", textAlign: "center", padding: "0 3px", lineHeight: 1.3, width: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {occupied.split(" ")[0]}
+                      </div>
+                    )}
+                    {!occupied && <div style={{ fontSize: 9, color: "#304050" }}>○</div>}
+                  </div>,
+                  cols === 4 && c === 1 ? <div key={`aisle-${c}`} style={{ width: 20, flexShrink: 0 }} /> : null
+                ];
               })}
             </div>
           ))}

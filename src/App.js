@@ -857,7 +857,7 @@ const ExcursionsPage = ({ tour }) => {
   const [numPeople, setNumPeople] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState("Credit Card");
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState({});
+  const [, setSubmitted] = useState({});
   const [error, setError] = useState("");
 
   const fetchData = async () => {

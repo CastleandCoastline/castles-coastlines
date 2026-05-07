@@ -1034,7 +1034,15 @@ const ExcursionsPage = ({ tour, guestName }) => {
     setSubmitting(false);
   };
 
-  const myBooking = (excId) => bookings.find(b => b.excursion_id === excId);
+  const myBooking = (excId) => {
+    if (!guestName) return null;
+    const surname = guestName.toLowerCase().trim();
+    return bookings.find(b => {
+      if (b.excursion_id !== excId) return false;
+      const nameParts = b.guest_names.toLowerCase().trim().split(/[\s,&]+/).map(n => n.trim()).filter(Boolean);
+      return nameParts.includes(surname);
+    });
+  };
 
   if (loading) return <div style={{ padding: 40, textAlign: "center", color: "#607080" }}><div style={{ fontSize: 32, marginBottom: 10 }}>🎭</div><div>Loading excursions…</div></div>;
 

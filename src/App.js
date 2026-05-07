@@ -308,25 +308,24 @@ const CoachSeatingPlan = ({ tour, guestName, isGuide }) => {
         </div>
 
         {/* Seat grid */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "center" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
           {Array.from({ length: rows }).map((_, r) => (
-            <div key={r} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <div key={r} style={{ display: "flex", gap: 8, width: "100%" }}>
               {Array.from({ length: cols }).map((_, c) => {
                 const seatNum = r * cols + c + 1;
                 const seat = getSeat(r, c);
                 const occupied = seat?.guest_name;
                 const isMySeat = occupied && guestName && occupied.toLowerCase() === guestName.toLowerCase();
                 return (
-                  <div key={c} style={{ display: "flex", alignItems: "center" }}>
+                  <div key={c} style={{ display: "flex", alignItems: "center", flex: c === 1 && cols === 4 ? "0 0 auto" : 1 }}>
                     {/* Aisle gap */}
-                    {cols === 4 && c === 2 && <div style={{ width: 20 }} />}
+                    {cols === 4 && c === 2 && <div style={{ width: 16, flexShrink: 0 }} />}
                     <div title={occupied ? `Seat ${seatNum} — ${occupied}` : `Seat ${seatNum} — Available`}
-                      style={{ width: 44, height: 46, borderRadius: 8, background: isMySeat ? "#c9a96e" : occupied ? "#2a4a6b" : "#0d1520", border: `1px solid ${isMySeat ? "#c9a96e" : occupied ? "#3a6a9b" : "#ffffff15"}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "default", transition: "all 0.2s", gap: 1 }}>
-                      {/* Seat number always visible at top */}
-                      <div style={{ fontSize: 11, color: isMySeat ? "#1a1a2e" : occupied ? "#6080a0" : "#304050", fontWeight: 700, lineHeight: 1 }}>{seatNum}</div>
-                      {isMySeat && <div style={{ fontSize: 13 }}>⭐</div>}
+                      style={{ flex: 1, minHeight: 80, borderRadius: 10, background: isMySeat ? "#c9a96e" : occupied ? "#2a4a6b" : "#0d1520", border: `2px solid ${isMySeat ? "#c9a96e" : occupied ? "#3a6a9b" : "#ffffff15"}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "default", transition: "all 0.2s", gap: 2, padding: "6px 2px" }}>
+                      <div style={{ fontSize: 13, color: isMySeat ? "#1a1a2e" : occupied ? "#a0c0e0" : "#506070", fontWeight: 700, lineHeight: 1 }}>{seatNum}</div>
+                      {isMySeat && <div style={{ fontSize: 16 }}>⭐</div>}
                       {occupied && !isMySeat && (
-                        <div style={{ fontSize: 9, color: "#8090a0", textAlign: "center", padding: "0 2px", lineHeight: 1.2, maxWidth: 42, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <div style={{ fontSize: 11, color: "#a0c0e0", textAlign: "center", padding: "0 3px", lineHeight: 1.3, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {occupied.split(" ")[0]}
                         </div>
                       )}
@@ -619,11 +618,11 @@ const UploadModal = ({ tourId, onUploaded, onClose }) => {
         {preview && <button onClick={() => { setFile(null); setPreview(null); }} style={{ width: "100%", padding: "7px", background: "transparent", border: "1px solid #ffffff15", borderRadius: 8, color: "#607080", fontSize: 12, cursor: "pointer", marginBottom: 14 }}>Choose different photo</button>}
         <div style={{ marginBottom: 12 }}>
           <label style={{ fontSize: 11, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Your Name</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sarah" maxLength={40} style={{ width: "100%", background: "#0d1520", border: "1px solid #ffffff20", borderRadius: 8, padding: "10px 12px", color: "#f0e6d3", fontSize: 14, outline: "none" }} />
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sarah" maxLength={40} style={{ width: "100%", background: "#0d1520", border: "1px solid #ffffff20", borderRadius: 8, padding: "10px 12px", color: "#f0e6d3", fontSize: 16, outline: "none" }} />
         </div>
         <div style={{ marginBottom: 20 }}>
           <label style={{ fontSize: 11, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Caption <span style={{ color: "#506070", textTransform: "none", letterSpacing: 0 }}>(optional)</span></label>
-          <input value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="e.g. Sunrise over Loch Lomond" maxLength={120} style={{ width: "100%", background: "#0d1520", border: "1px solid #ffffff20", borderRadius: 8, padding: "10px 12px", color: "#f0e6d3", fontSize: 14, outline: "none" }} />
+          <input value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="e.g. Sunrise over Loch Lomond" maxLength={120} style={{ width: "100%", background: "#0d1520", border: "1px solid #ffffff20", borderRadius: 8, padding: "10px 12px", color: "#f0e6d3", fontSize: 16, outline: "none" }} />
         </div>
         {error && <div style={{ color: "#ff6666", fontSize: 13, marginBottom: 12, textAlign: "center" }}>{error}</div>}
         <div style={{ display: "flex", gap: 10 }}>
@@ -947,8 +946,8 @@ const ExcursionDayInline = ({ tour, dayLocation, guestName, dayIdx }) => {
       })}
 
       {booking && (
-        <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 2000, display: "flex", alignItems: "flex-end" }}>
-          <div style={{ background: "#1a2332", borderRadius: "20px 20px 0 0", padding: 24, width: "100%", maxWidth: 480, margin: "0 auto", border: "1px solid #c9a96e30" }}>
+        <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 3000, display: "flex", alignItems: "flex-end" }}>
+          <div style={{ background: "#1a2332", borderRadius: "20px 20px 0 0", padding: 24, paddingBottom: 48, width: "100%", maxWidth: 480, margin: "0 auto", border: "1px solid #c9a96e30", maxHeight: "85vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, color: "#f0e6d3" }}>{booking.title}</div>
               <button onClick={() => { setBooking(null); setError(""); }} style={{ background: "none", border: "none", color: "#607080", fontSize: 22, cursor: "pointer" }}>×</button>
@@ -956,7 +955,7 @@ const ExcursionDayInline = ({ tour, dayLocation, guestName, dayIdx }) => {
             <div style={{ marginBottom: 14 }}>
               <label style={{ fontSize: 11, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Name(s)</label>
               <input value={guestNames} onChange={e => setGuestNames(e.target.value)} placeholder="e.g. John & Mary Smith"
-                style={{ width: "100%", background: "#0d1520", border: "1px solid #ffffff20", borderRadius: 8, padding: "10px 12px", color: "#f0e6d3", fontSize: 14, outline: "none" }} />
+                style={{ width: "100%", background: "#0d1520", border: "1px solid #ffffff20", borderRadius: 8, padding: "10px 12px", color: "#f0e6d3", fontSize: 16, outline: "none" }} />
             </div>
             <div style={{ marginBottom: 14 }}>
               <label style={{ fontSize: 11, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Number of people</label>
@@ -1153,8 +1152,8 @@ const ExcursionsPage = ({ tour, guestName }) => {
 
       {/* Booking modal */}
       {booking && (
-        <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 2000, display: "flex", alignItems: "flex-end", padding: "0" }}>
-          <div style={{ background: "#1a2332", borderRadius: "20px 20px 0 0", padding: 24, paddingBottom: 40, width: "100%", maxWidth: 480, margin: "0 auto", border: "1px solid #c9a96e30", maxHeight: "90vh", overflowY: "auto" }}>
+        <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 3000, display: "flex", alignItems: "flex-end", padding: "0" }}>
+          <div style={{ background: "#1a2332", borderRadius: "20px 20px 0 0", padding: 24, paddingBottom: 48, width: "100%", maxWidth: 480, margin: "0 auto", border: "1px solid #c9a96e30", maxHeight: "85vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, color: "#f0e6d3" }}>{booking.title}</div>
               <button onClick={() => { setBooking(null); setError(""); }} style={{ background: "none", border: "none", color: "#607080", fontSize: 22, cursor: "pointer" }}>×</button>
@@ -1163,7 +1162,7 @@ const ExcursionsPage = ({ tour, guestName }) => {
             <div style={{ marginBottom: 14 }}>
               <label style={{ fontSize: 11, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Name(s)</label>
               <input value={guestNames} onChange={e => setGuestNames(e.target.value)} placeholder="e.g. John & Mary Smith"
-                style={{ width: "100%", background: "#0d1520", border: "1px solid #ffffff20", borderRadius: 8, padding: "10px 12px", color: "#f0e6d3", fontSize: 14, outline: "none" }} />
+                style={{ width: "100%", background: "#0d1520", border: "1px solid #ffffff20", borderRadius: 8, padding: "10px 12px", color: "#f0e6d3", fontSize: 16, outline: "none" }} />
               <div style={{ fontSize: 11, color: "#506070", marginTop: 4 }}>Enter all names if booking for a group</div>
             </div>
 
@@ -1235,21 +1234,33 @@ const ContactAndEmergencyPage = ({ tour }) => {
       <div style={{ color: "#7080a0", fontSize: 13, marginBottom: 20 }}>Your guide & emergency services</div>
 
       {hasContact ? (
-        <div style={{ background: "#1a2332", borderRadius: 16, padding: "18px 20px", border: "1px solid #c9a96e30", marginBottom: 20 }}>
-          <div style={{ fontSize: 12, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600, marginBottom: 14 }}>Your Guide</div>
-          {tour.guide_name && <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 700, marginBottom: 14 }}>{tour.guide_name}</div>}
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {tour.guide_phone && <a href={`tel:${tour.guide_phone}`} style={{ display: "flex", alignItems: "center", gap: 12, background: "#0d1520", borderRadius: 12, padding: "12px 16px", textDecoration: "none", border: "1px solid #ffffff10" }}>
-              <span style={{ fontSize: 22 }}>📞</span>
-              <div style={{ flex: 1 }}><div style={{ fontSize: 11, color: "#607080", marginBottom: 2 }}>Call guide</div><div style={{ fontSize: 16, fontWeight: 600, color: "#f0e6d3" }}>{tour.guide_phone}</div></div>
-              <span style={{ color: "#c9a96e" }}>→</span>
-            </a>}
-            {tour.guide_email && <a href={`mailto:${tour.guide_email}`} style={{ display: "flex", alignItems: "center", gap: 12, background: "#0d1520", borderRadius: 12, padding: "12px 16px", textDecoration: "none", border: "1px solid #ffffff10" }}>
-              <span style={{ fontSize: 22 }}>✉️</span>
-              <div style={{ flex: 1 }}><div style={{ fontSize: 11, color: "#607080", marginBottom: 2 }}>Email guide</div><div style={{ fontSize: 14, color: "#f0e6d3" }}>{tour.guide_email}</div></div>
-              <span style={{ color: "#c9a96e" }}>→</span>
-            </a>}
-          </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 20 }}>
+          {tour.guide_name && (
+            <div style={{ background: "#1a2332", borderRadius: 16, padding: "18px 20px", border: "1px solid #c9a96e30", textAlign: "center" }}>
+              <div style={{ fontSize: 11, color: "#c9a96e", letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Your Guide</div>
+              <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, fontWeight: 700 }}>{tour.guide_name}</div>
+            </div>
+          )}
+          {tour.guide_phone && (
+            <a href={`tel:${tour.guide_phone}`} style={{ display: "flex", alignItems: "center", gap: 16, background: "#1a2332", borderRadius: 16, padding: "16px 20px", textDecoration: "none", border: "1px solid #ffffff10" }}>
+              <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#c9a96e20", border: "1px solid #c9a96e40", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>📞</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 12, color: "#607080", marginBottom: 3 }}>Phone</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#f0e6d3" }}>{tour.guide_phone}</div>
+              </div>
+              <div style={{ background: "linear-gradient(135deg,#c9a96e,#a07840)", borderRadius: 10, padding: "8px 16px", color: "#1a1a2e", fontWeight: 700, fontSize: 14 }}>Call</div>
+            </a>
+          )}
+          {tour.guide_email && (
+            <a href={`mailto:${tour.guide_email}`} style={{ display: "flex", alignItems: "center", gap: 16, background: "#1a2332", borderRadius: 16, padding: "16px 20px", textDecoration: "none", border: "1px solid #ffffff10" }}>
+              <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#c9a96e20", border: "1px solid #c9a96e40", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>✉️</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 12, color: "#607080", marginBottom: 3 }}>Email</div>
+                <div style={{ fontSize: 15, color: "#f0e6d3" }}>{tour.guide_email}</div>
+              </div>
+              <div style={{ background: "linear-gradient(135deg,#c9a96e,#a07840)", borderRadius: 10, padding: "8px 16px", color: "#1a1a2e", fontWeight: 700, fontSize: 14 }}>Email</div>
+            </a>
+          )}
         </div>
       ) : (
         <div style={{ textAlign: "center", padding: "24px 20px", color: "#405060", border: "1px dashed #ffffff15", borderRadius: 16, marginBottom: 20 }}>
@@ -2333,6 +2344,10 @@ export default function App() {
       const theme = document.createElement("meta"); theme.name = "theme-color"; theme.content = "#0d1520"; document.head.appendChild(theme);
     }
     fetchTours();
+    // Prevent zoom on input focus
+    const viewportMeta = document.querySelector('meta[name="viewport"]');
+    if (viewportMeta) viewportMeta.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no';
+
     // Register service worker for offline support
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/service-worker.js')

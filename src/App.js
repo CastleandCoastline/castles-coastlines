@@ -888,12 +888,7 @@ const ExcursionDayInline = ({ tour, dayLocation, guestName, dayIdx }) => {
   const myBooking = (excId) => {
     if (!guestName) return null;
     const surname = guestName.toLowerCase().trim();
-    return bookings.find(b => {
-      if (b.excursion_id !== excId) return false;
-      const names = b.guest_names.toLowerCase().trim();
-      const nameParts = names.split(/[\s,&]+/).map(n => n.trim()).filter(Boolean);
-      return nameParts.includes(surname);
-    });
+    return bookings.find(b => b.excursion_id === excId && b.guest_names.toLowerCase().trim().includes(surname));
   };
 
   const handleBook = async () => {
@@ -1037,11 +1032,7 @@ const ExcursionsPage = ({ tour, guestName }) => {
   const myBooking = (excId) => {
     if (!guestName) return null;
     const surname = guestName.toLowerCase().trim();
-    return bookings.find(b => {
-      if (b.excursion_id !== excId) return false;
-      const nameParts = b.guest_names.toLowerCase().trim().split(/[\s,&]+/).map(n => n.trim()).filter(Boolean);
-      return nameParts.includes(surname);
-    });
+    return bookings.find(b => b.excursion_id === excId && b.guest_names.toLowerCase().trim().includes(surname));
   };
 
   if (loading) return <div style={{ padding: 40, textAlign: "center", color: "#607080" }}><div style={{ fontSize: 32, marginBottom: 10 }}>🎭</div><div>Loading excursions…</div></div>;

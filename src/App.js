@@ -385,6 +385,19 @@ const SeatingEditor = ({ tour, onSave, onClose, saving }) => {
   const [showPaste, setShowPaste] = useState(false);
 
   const handlePasteNames = () => {
+    const names = pasteText.split(/\r?\n/).map(n => n.trim()).filter(Boolean);
+    const newData = { ...seatData };
+    names.forEach((name, i) => {
+      const r = Math.floor(i / cols);
+      const c = i % cols;
+      if (r < rows) newData[r + "-" + c] = name;
+    });
+    setSeatData(newData);
+    setPasteText("");
+    setShowPaste(false);
+  };
+
+  const handlePasteNames = () => {
     const names = pasteText.split("\n").map(n => n.trim()).filter(Boolean);
     const newData = { ...seatData };
     names.forEach((name, i) => {

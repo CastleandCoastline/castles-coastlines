@@ -299,25 +299,29 @@ const CoachSeatingPlan = ({ tour, guestName, isGuide }) => {
 
       {/* Coach outline */}
       <div style={{ background: "#1a2332", borderRadius: 20, padding: 20, border: "1px solid #ffffff10" }}>
-        {/* Driver area */}
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
-          <div style={{ background: "#0d1520", borderRadius: 10, padding: "8px 24px", border: "1px solid #c9a96e30", textAlign: "center" }}>
-            <div style={{ fontSize: 20 }}>🚌</div>
-            <div style={{ fontSize: 10, color: "#506070", marginTop: 2 }}>DRIVER</div>
+        {/* Front of coach — Guide left, Driver right */}
+        <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+          <div style={{ flex: 1, background: "#1a3a2a", borderRadius: 10, padding: "10px 6px", border: "1px solid #2a6a4a", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 60 }}>
+            <div style={{ fontSize: 18 }}>🧑‍✈️</div>
+            <div style={{ fontSize: 10, color: "#6abf8a", marginTop: 3, fontWeight: 600, letterSpacing: 1 }}>GUIDE</div>
+          </div>
+          <div style={{ width: 20, flexShrink: 0 }} />
+          <div style={{ flex: 1, background: "#1a2a3a", borderRadius: 10, padding: "10px 6px", border: "1px solid #2a4a6a", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 60 }}>
+            <div style={{ fontSize: 18 }}>🚌</div>
+            <div style={{ fontSize: 10, color: "#6a8abf", marginTop: 3, fontWeight: 600, letterSpacing: 1 }}>DRIVER</div>
           </div>
         </div>
-
         {/* Seat grid */}
         <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
           {Array.from({ length: rows }).map((_, r) => (
-            <div key={r} style={{ display: "flex", gap: 6, width: "100%", alignItems: "center" }}>
+            <div key={`row-${r}`} style={{ display: "flex", gap: 6, width: "100%", alignItems: "center" }}>
               {Array.from({ length: cols }).map((_, c) => {
                 const seatNum = r * cols + c + 1;
                 const seat = getSeat(r, c);
                 const occupied = seat?.guest_name;
                 const isMySeat = occupied && guestName && occupied.toLowerCase() === guestName.toLowerCase();
                 return [
-                  <div key={`seat-${c}`} title={occupied ? `Seat ${seatNum} — ${occupied}` : `Seat ${seatNum} — Available`}
+                  <div key={`seat-${r}-${c}-${occupied || "empty"}`} title={occupied ? `Seat ${seatNum} — ${occupied}` : `Seat ${seatNum} — Available`}
                     style={{ flex: 1, minHeight: 80, borderRadius: 10, background: isMySeat ? "#c9a96e" : occupied ? "#2a4a6b" : "#0d1520", border: `2px solid ${isMySeat ? "#c9a96e" : occupied ? "#3a6a9b" : "#ffffff15"}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "default", transition: "all 0.2s", gap: 2, padding: "6px 2px" }}>
                     <div style={{ fontSize: 13, color: isMySeat ? "#1a1a2e" : occupied ? "#a0c0e0" : "#506070", fontWeight: 700, lineHeight: 1 }}>{seatNum}</div>
                     {isMySeat && <div style={{ fontSize: 16 }}>⭐</div>}

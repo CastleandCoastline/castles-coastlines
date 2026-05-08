@@ -312,7 +312,7 @@ const CoachSeatingPlan = ({ tour, guestName, isGuide }) => {
           </div>
         </div>
         {/* Seat grid */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
+        <div key={seats.map(s => s.guest_name).join(",")} style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
           {Array.from({ length: rows }).map((_, r) => (
             <div key={`row-${r}`} style={{ display: "flex", gap: 6, width: "100%", alignItems: "center" }}>
               {Array.from({ length: cols }).map((_, c) => {
@@ -529,13 +529,18 @@ const SeatingEditor = ({ tour, onSave, onClose, saving }) => {
         )}
 
         {/* Mini seat grid for editing */}
-        <div style={{ background: "#0d1520", borderRadius: 14, padding: 16, marginBottom: 16, maxHeight: 360, overflowY: "auto" }}>
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
-            <div style={{ background: "#1a2332", borderRadius: 8, padding: "6px 16px", border: "1px solid #c9a96e20" }}>
-              <div style={{ fontSize: 16, textAlign: "center" }}>🚌</div>
-              <div style={{ fontSize: 9, color: "#506070", textAlign: "center" }}>DRIVER</div>
-            </div>
+        <div key={JSON.stringify(seatData)} style={{ background: "#0d1520", borderRadius: 14, padding: 16, marginBottom: 16, maxHeight: 360, overflowY: "auto" }}>
+        <div style={{ display: "flex", gap: 4, marginBottom: 12, alignItems: "center" }}>
+          <div style={{ flex: 1, background: "#1a3a2a", borderRadius: 8, padding: "6px 10px", border: "1px solid #2a6a4a", textAlign: "center" }}>
+            <div style={{ fontSize: 14 }}>🧑‍✈️</div>
+            <div style={{ fontSize: 9, color: "#6abf8a", fontWeight: 600 }}>GUIDE</div>
           </div>
+          <div style={{ width: 12, flexShrink: 0 }} />
+          <div style={{ flex: 1, background: "#1a2a3a", borderRadius: 8, padding: "6px 10px", border: "1px solid #2a4a6a", textAlign: "center" }}>
+            <div style={{ fontSize: 14 }}>🚌</div>
+            <div style={{ fontSize: 9, color: "#6a8abf", fontWeight: 600 }}>DRIVER</div>
+          </div>
+        </div>
           {Array.from({ length: rows }).map((_, r) => (
             <div key={r} style={{ display: "flex", gap: 4, alignItems: "center", marginBottom: 4, justifyContent: "center" }}>
               {Array.from({ length: cols }).map((_, c) => {

@@ -92,7 +92,6 @@ export default function StatsPage() {
 
   // Global stats
   const totalRevenue = bookings?.reduce((sum, b) => sum + (b.num_people * (b.excursions?.price || 0)), 0) || 0;
-  const totalGuests = seats?.filter(s => s.guest_name).length || 0;
   const totalBookings = bookings?.length || 0;
   const totalPhotos = photos?.length || 0;
 

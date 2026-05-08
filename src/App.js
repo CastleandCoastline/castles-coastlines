@@ -379,7 +379,22 @@ const SeatingEditor = ({ tour, onSave, onClose, saving }) => {
     if (editing) { setSeatData((prev) => ({ ...prev, [editing]: "" })); setEditing(null); setNameInput(""); }
   };
 
-  const [rotateAmount, setRotateAmount] = useState(1);
+  const [rotateAmount, setRotateAmount] = useState(2);
+  const [dragFrom, setDragFrom] = useState(null);
+  const handleDragStart = (key) => setDragFrom(key);
+  const handleDragOver = (e) => e.preventDefault();
+  const handleDrop = (toKey) => {
+    if (!dragFrom || dragFrom === toKey) { setDragFrom(null); return; }
+    setSeatData(prev => {
+      const updated = { ...prev };
+      const fromName = updated[dragFrom] || "";
+      const toName = updated[toKey] || "";
+      updated[dragFrom] = toName;
+      updated[toKey] = fromName;
+      return updated;
+    });
+    setDragFrom(null);
+  };
   const [rotateConfirm, setRotateConfirm] = useState(null);
 
   // Build clockwise seat order: left side top→bottom, right side bottom→top
@@ -461,7 +476,27 @@ const SeatingEditor = ({ tour, onSave, onClose, saving }) => {
           )}
         </div>
 
-        <div style={{ fontSize: 12, color: "#607080", marginBottom: 14 }}>Tap any seat to assign a guest name</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <div style={{ fontSize: 12, color: "#607080" }}>Tap a seat to edit · Drag to swap</div>
+          <button onClick={() => setShowPaste(p => !p)}
+            style={{ background: "#c9a96e15", border: "1px solid #c9a96e40", borderRadius: 8, padding: "5px 12px", color: "#c9a96e", fontSize: 12, cursor: "pointer" }}>
+            📋 Paste Names
+          </button>
+        </div>
+        {showPaste && (
+          <div style={{ background: "#0d1520", borderRadius: 12, padding: 14, marginBottom: 14, border: "1px solid #c9a96e30" }}>
+            <div style={{ fontSize: 11, color: "#c9a96e", marginBottom: 8 }}>Paste names below — one per line, fills seats in order</div>
+            <textarea value={pasteText} onChange={e => setPasteText(e.target.value)}
+              placeholder={"John Smith\nMary Jones\nPeter Brown\n..."}
+              style={{ width: "100%", minHeight: 120, background: "#1a2332", border: "1px solid #ffffff20", borderRadius: 8, padding: "8px 10px", color: "#f0e6d3", fontSize: 13, outline: "none", resize: "vertical", fontFamily: "'Lato',sans-serif" }} />
+            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+              <button onClick={() => setShowPaste(false)}
+                style={{ flex: 1, padding: "8px", background: "transparent", border: "1px solid #ffffff20", borderRadius: 8, color: "#8090a0", fontSize: 13, cursor: "pointer" }}>Cancel</button>
+              <button onClick={handlePasteNames}
+                style={{ flex: 2, padding: "8px", background: "linear-gradient(135deg,#c9a96e,#a07840)", borderRadius: 8, border: "none", color: "#1a1a2e", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Fill Seats</button>
+            </div>
+          </div>
+        )}
 
         {/* Mini seat grid for editing */}
         <div style={{ background: "#0d1520", borderRadius: 14, padding: 16, marginBottom: 16, maxHeight: 360, overflowY: "auto" }}>
@@ -482,6 +517,10 @@ const SeatingEditor = ({ tour, onSave, onClose, saving }) => {
                   <div key={c} style={{ display: "flex" }}>
                     {cols === 4 && c === 2 && <div style={{ width: 12 }} />}
                     <div onClick={() => handleSeatClick(r, c)}
+              draggable
+              onDragStart={() => handleDragStart(`${r}-${c}`)}
+              onDragOver={handleDragOver}
+              onDrop={() => handleDrop(`${r}-${c}`)}
                       style={{ width: 40, height: 38, borderRadius: 6, background: isSelected ? "#c9a96e30" : name ? "#2a4a6b" : "#1a2332", border: `1px solid ${isSelected ? "#c9a96e" : name ? "#3a6a9b" : "#ffffff15"}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", gap: 1 }}>
                       <div style={{ fontSize: 8, fontWeight: 700, color: isSelected ? "#c9a96e" : name ? "#6080a0" : "#304050" }}>{seatNum}</div>
                       <div style={{ fontSize: 8, color: name ? "#a0b0c0" : "#304050", textAlign: "center", padding: "0 2px", lineHeight: 1.2, overflow: "hidden", maxWidth: 38, whiteSpace: "nowrap", textOverflow: "ellipsis" }}>

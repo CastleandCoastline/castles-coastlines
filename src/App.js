@@ -323,7 +323,7 @@ const CoachSeatingPlan = ({ tour, guestName, isGuide }) => {
                     {isMySeat && <div style={{ fontSize: 16 }}>⭐</div>}
                     {occupied && !isMySeat && (
                       <div style={{ fontSize: 11, color: "#a0c0e0", textAlign: "center", padding: "0 3px", lineHeight: 1.3, width: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        <div style={{ fontSize: occupied.length > 10 ? 9 : 11, fontWeight: 600, textAlign: "center", lineHeight: 1.2, width: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{occupied.split(" ")[0]}</div>
+                        <div style={{ fontSize: occupied.split(" ")[0].length > 7 ? 9 : occupied.split(" ")[0].length > 5 ? 10 : 12, fontWeight: 600, textAlign: "center", lineHeight: 1.2, width: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{occupied.split(" ")[0]}</div>
                         {occupied.split(" ").length > 1 && <div style={{ fontSize: occupied.split(" ").slice(1).join(" ").length > 7 ? 8 : 9, color: "#a0c0e0", lineHeight: 1.2, width: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{occupied.split(" ").slice(1).join(" ")}</div>}
                       </div>
                     )}

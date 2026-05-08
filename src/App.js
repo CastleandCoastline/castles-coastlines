@@ -324,6 +324,7 @@ const CoachSeatingPlan = ({ tour, guestName, isGuide }) => {
                     {occupied && !isMySeat && (
                       <div style={{ fontSize: 11, color: "#a0c0e0", textAlign: "center", padding: "0 3px", lineHeight: 1.3, width: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {occupied.split(" ")[0]}
+                        {occupied.split(" ").length > 1 && <div style={{ fontSize: 9, color: "#8090a0", lineHeight: 1.2 }}>{occupied.split(" ").slice(1).join(" ")}</div>}
                       </div>
                     )}
                     {!occupied && <div style={{ fontSize: 9, color: "#304050" }}>○</div>}
@@ -398,19 +399,25 @@ const SeatingEditor = ({ tour, onSave, onClose, saving }) => {
   };
 
 
-  const handleDragStart = (key) => setDragFrom(key);
-  const handleDragOver = (e) => e.preventDefault();
-  const handleDrop = (toKey) => {
-    if (!dragFrom || dragFrom === toKey) { setDragFrom(null); return; }
-    setSeatData(prev => {
-      const updated = { ...prev };
-      const fromName = updated[dragFrom] || "";
-      const toName = updated[toKey] || "";
-      updated[dragFrom] = toName;
-      updated[toKey] = fromName;
-      return updated;
-    });
-    setDragFrom(null);
+  const handleSeatSwap = (key) => {
+    if (!dragFrom) {
+      // First tap — select this seat to swap
+      setDragFrom(key);
+    } else if (dragFrom === key) {
+      // Tapped same seat — deselect
+      setDragFrom(null);
+    } else {
+      // Second tap — swap the two seats
+      setSeatData(prev => {
+        const updated = { ...prev };
+        const fromName = updated[dragFrom] || "";
+        const toName = updated[key] || "";
+        updated[dragFrom] = toName;
+        updated[key] = fromName;
+        return updated;
+      });
+      setDragFrom(null);
+    }
   };
   const [rotateConfirm, setRotateConfirm] = useState(null);
 
@@ -494,7 +501,7 @@ const SeatingEditor = ({ tour, onSave, onClose, saving }) => {
         </div>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-          <div style={{ fontSize: 12, color: "#607080" }}>Tap a seat to edit · Drag to swap</div>
+          <div style={{ fontSize: 12, color: dragFrom ? "#c9a96e" : "#607080" }}>{dragFrom ? "Now tap another seat to swap" : "Tap to select · Tap again to swap · Double-tap to edit"}</div>
           <button onClick={() => setShowPaste(p => !p)}
             style={{ background: "#c9a96e15", border: "1px solid #c9a96e40", borderRadius: 8, padding: "5px 12px", color: "#c9a96e", fontSize: 12, cursor: "pointer" }}>
             📋 Paste Names
@@ -533,15 +540,13 @@ const SeatingEditor = ({ tour, onSave, onClose, saving }) => {
                 return (
                   <div key={c} style={{ display: "flex" }}>
                     {cols === 4 && c === 2 && <div style={{ width: 12 }} />}
-                    <div onClick={() => handleSeatClick(r, c)}
-              draggable
-              onDragStart={() => handleDragStart(`${r}-${c}`)}
-              onDragOver={handleDragOver}
-              onDrop={() => handleDrop(`${r}-${c}`)}
-                      style={{ width: 40, height: 38, borderRadius: 6, background: isSelected ? "#c9a96e30" : name ? "#2a4a6b" : "#1a2332", border: `1px solid ${isSelected ? "#c9a96e" : name ? "#3a6a9b" : "#ffffff15"}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", gap: 1 }}>
+                    <div onClick={() => { if (editing) return; handleSeatSwap(r + "-" + c); }}
+              onDoubleClick={() => { setDragFrom(null); handleSeatClick(r, c); }}
+                      style={{ width: 40, height: 38, borderRadius: 6, background: dragFrom === (r + "-" + c) ? "#c9a96e40" : isSelected ? "#c9a96e30" : name ? "#2a4a6b" : "#1a2332", border: `1px solid ${isSelected ? "#c9a96e" : name ? "#3a6a9b" : "#ffffff15"}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", gap: 1 }}>
                       <div style={{ fontSize: 8, fontWeight: 700, color: isSelected ? "#c9a96e" : name ? "#6080a0" : "#304050" }}>{seatNum}</div>
                       <div style={{ fontSize: 8, color: name ? "#a0b0c0" : "#304050", textAlign: "center", padding: "0 2px", lineHeight: 1.2, overflow: "hidden", maxWidth: 38, whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
-                        {name ? name.split(" ")[0].slice(0, 5) : "○"}
+                        {name ? name.split(" ")[0] : "○"}
+                    {name && name.split(" ").length > 1 && <div style={{ fontSize: 7, color: isSelected ? "#c9a96e" : "#8090a0", lineHeight: 1.1 }}>{name.split(" ").slice(1).join(" ").slice(0, 6)}</div>}
                       </div>
                     </div>
                   </div>
@@ -1438,7 +1443,7 @@ const AnnouncementBanner = ({ text }) => {
 const GuestNav = ({ active, onChange }) => {
   const tabs = [{ id: "itinerary", icon: "🗓️", label: "Itinerary" }, { id: "coach", icon: "🚌", label: "Seats" }, { id: "photos", icon: "📸", label: "Photos" }, { id: "excursions", icon: "🎭", label: "Excursions" }, { id: "info", icon: "💡", label: "Info" }, { id: "contact", icon: "📞", label: "Contact" }];
   return (
-    <div className="guest-nav" style={{ display: "flex", borderTop: "1px solid #ffffff10", background: "#0d1520", flexShrink: 0 }}>
+    <div className="guest-nav" style={{ display: "flex", borderTop: "1px solid #ffffff10", background: "#0d1520", flexShrink: 0, paddingBottom: "env(safe-area-inset-bottom, 8px)" }}>
       {tabs.map((tab) => (
         <button key={tab.id} onClick={() => onChange(tab.id)} style={{ flex: 1, padding: "12px 2px 10px", background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, borderTop: `2px solid ${active === tab.id ? "#c9a96e" : "transparent"}` }}>
           <span style={{ fontSize: 18 }}>{tab.icon}</span>

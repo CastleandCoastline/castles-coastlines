@@ -381,6 +381,22 @@ const SeatingEditor = ({ tour, onSave, onClose, saving }) => {
 
   const [rotateAmount, setRotateAmount] = useState(2);
   const [dragFrom, setDragFrom] = useState(null);
+  const [pasteText, setPasteText] = useState("");
+  const [showPaste, setShowPaste] = useState(false);
+
+  const handlePasteNames = () => {
+    const names = pasteText.split("\n").map(n => n.trim()).filter(Boolean);
+    const newData = { ...seatData };
+    names.forEach((name, i) => {
+      const r = Math.floor(i / cols);
+      const c = i % cols;
+      if (r < rows) newData[\`\${r}-\${c}\`] = name;
+    });
+    setSeatData(newData);
+    setPasteText("");
+    setShowPaste(false);
+  };
+
   const handleDragStart = (key) => setDragFrom(key);
   const handleDragOver = (e) => e.preventDefault();
   const handleDrop = (toKey) => {

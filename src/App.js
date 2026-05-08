@@ -2196,13 +2196,13 @@ const GuideDashboard = ({ tours, onLogout, onRefresh, onViewTour }) => {
             </div>
           </div>
         </div>
-          <button onClick={() => onViewTour(tour)} style={{ padding: "13px", background: "#1a2332", border: "1px solid #ffffff15", borderRadius: 12, color: "#8090a0", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Guest View ↗</button>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+          <button onClick={() => onViewTour(tour)} style={{ padding: "13px", background: "#1a2332", border: "1px solid #ffffff15", borderRadius: 12, color: "#8090a0", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>👁 Guest View</button>
           <button onClick={() => onViewTour(tour, "photos")} style={{ padding: "13px", background: "#1a2332", border: "1px solid #c9a96e40", borderRadius: 12, color: "#c9a96e", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>📸 Photos</button>
-        <button onClick={() => window.open('/menu', '_blank')} style={{ width: "100%", padding: "13px", background: "#1a2332", border: "1px solid #c9a96e40", borderRadius: 12, color: "#c9a96e", fontWeight: 700, fontSize: 14, cursor: "pointer", marginTop: -6, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        </div>
+        <button onClick={() => window.open('/menu', '_blank')} style={{ width: "100%", padding: "13px", background: "#1a2332", border: "1px solid #c9a96e40", borderRadius: 12, color: "#c9a96e", fontWeight: 700, fontSize: 14, cursor: "pointer", marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
           <span>🍽️</span><span>Menu Orders</span>
         </button>
-        <div style={{ display: "none" }}>
-        </div>
 
         <div style={{ background: "#1a2332", borderRadius: 16, padding: 20, marginBottom: 16, border: "1px solid #c9a96e20" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
@@ -2340,7 +2340,7 @@ export default function App() {
   }, []);
 
   const liveTour = guestTourId ? tours.find((t) => t.id === guestTourId) : null;
-  const handleViewTour = (tour, page = "itinerary") => { setGuestTourId(tour.id); setGuestStartPage(page); setView("guest"); };
+  const handleViewTour = (tour, page = "itinerary") => { setGuestTourId(tour.id); setGuestStartPage(page); setIsGuide(true); setView("guest"); };
 
   if (loading) return (
     <div style={{ minHeight: "100vh", background: "#0d1520", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "'Lato',sans-serif", color: "#f0e6d3" }}>

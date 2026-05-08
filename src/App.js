@@ -323,8 +323,8 @@ const CoachSeatingPlan = ({ tour, guestName, isGuide }) => {
                     {isMySeat && <div style={{ fontSize: 16 }}>⭐</div>}
                     {occupied && !isMySeat && (
                       <div style={{ fontSize: 11, color: "#a0c0e0", textAlign: "center", padding: "0 3px", lineHeight: 1.3, width: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {occupied.split(" ")[0]}
-                        {occupied.split(" ").length > 1 && <div style={{ fontSize: 9, color: "#8090a0", lineHeight: 1.2 }}>{occupied.split(" ").slice(1).join(" ")}</div>}
+                        <div style={{ fontSize: occupied.length > 10 ? 9 : 11, fontWeight: 600, textAlign: "center", lineHeight: 1.2, width: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{occupied.split(" ")[0]}</div>
+                        {occupied.split(" ").length > 1 && <div style={{ fontSize: occupied.split(" ").slice(1).join(" ").length > 7 ? 8 : 9, color: "#a0c0e0", lineHeight: 1.2, width: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{occupied.split(" ").slice(1).join(" ")}</div>}
                       </div>
                     )}
                     {!occupied && <div style={{ fontSize: 9, color: "#304050" }}>○</div>}
@@ -438,11 +438,13 @@ const SeatingEditor = ({ tour, onSave, onClose, saving }) => {
     const order = buildClockwiseOrder();
     const total = order.length;
     const steps = direction === "clockwise" ? rotateAmount : total - (rotateAmount % total);
+    // Start with completely empty seat data
     const newData = {};
     order.forEach((key, i) => {
       const newIndex = (i + steps) % total;
       const newKey = order[newIndex];
-      if (seatData[key]) newData[newKey] = seatData[key];
+      // Always set the new key — empty string if no name
+      newData[newKey] = seatData[key] || "";
     });
     setSeatData(newData);
     setRotateConfirm(null);
@@ -545,8 +547,12 @@ const SeatingEditor = ({ tour, onSave, onClose, saving }) => {
                       style={{ width: 40, height: 38, borderRadius: 6, background: dragFrom === (r + "-" + c) ? "#c9a96e40" : isSelected ? "#c9a96e30" : name ? "#2a4a6b" : "#1a2332", border: `1px solid ${isSelected ? "#c9a96e" : name ? "#3a6a9b" : "#ffffff15"}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", gap: 1 }}>
                       <div style={{ fontSize: 8, fontWeight: 700, color: isSelected ? "#c9a96e" : name ? "#6080a0" : "#304050" }}>{seatNum}</div>
                       <div style={{ fontSize: 8, color: name ? "#a0b0c0" : "#304050", textAlign: "center", padding: "0 2px", lineHeight: 1.2, overflow: "hidden", maxWidth: 38, whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
-                        {name ? name.split(" ")[0] : "○"}
-                    {name && name.split(" ").length > 1 && <div style={{ fontSize: 7, color: isSelected ? "#c9a96e" : "#8090a0", lineHeight: 1.1 }}>{name.split(" ").slice(1).join(" ").slice(0, 6)}</div>}
+                        {name ? (
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1, width: "100%", overflow: "hidden" }}>
+                          <div style={{ fontSize: name.length > 8 ? 7 : 8, fontWeight: 600, textAlign: "center", lineHeight: 1.2, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name.split(" ")[0]}</div>
+                          {name.split(" ").length > 1 && <div style={{ fontSize: name.split(" ").slice(1).join(" ").length > 6 ? 6 : 7, color: isSelected ? "#c9a96e" : "#8090a0", lineHeight: 1.1, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name.split(" ").slice(1).join(" ")}</div>}
+                        </div>
+                      ) : "○"}
                       </div>
                     </div>
                   </div>

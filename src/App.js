@@ -1458,7 +1458,7 @@ const AnnouncementBanner = ({ text }) => {
 const GuestNav = ({ active, onChange }) => {
   const tabs = [{ id: "itinerary", icon: "🗓️", label: "Itinerary" }, { id: "coach", icon: "🚌", label: "Seats" }, { id: "photos", icon: "📸", label: "Photos" }, { id: "excursions", icon: "🎭", label: "Excursions" }, { id: "info", icon: "💡", label: "Info" }, { id: "contact", icon: "📞", label: "Contact" }];
   return (
-    <div className="guest-nav" style={{ display: "flex", borderTop: "1px solid #ffffff10", background: "#0d1520", flexShrink: 0, paddingBottom: "env(safe-area-inset-bottom, 8px)" }}>
+    <div className="guest-nav" style={{ display: "flex", borderTop: "1px solid #ffffff10", background: "#0d1520", flexShrink: 0, paddingBottom: "max(env(safe-area-inset-bottom, 0px), 12px)" }}>
       {tabs.map((tab) => (
         <button key={tab.id} onClick={() => onChange(tab.id)} style={{ flex: 1, padding: "12px 2px 10px", background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, borderTop: `2px solid ${active === tab.id ? "#c9a96e" : "transparent"}` }}>
           <span style={{ fontSize: 18 }}>{tab.icon}</span>

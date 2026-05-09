@@ -1873,7 +1873,7 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline, guestName })
           </div>
         </div>
       </div>
-      <div style={{ flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch", paddingBottom: "80px" }}>
+      <div style={{ flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
         {activePage === "itinerary" && (
           <>
             {tour.days.length === 0 ? <div style={{ padding: 40, textAlign: "center", color: "#405060" }}><div style={{ fontSize: 40, marginBottom: 12 }}>🗓️</div><div>Your itinerary is being prepared. Check back soon!</div></div>

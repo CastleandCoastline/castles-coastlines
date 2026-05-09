@@ -1458,7 +1458,7 @@ const AnnouncementBanner = ({ text }) => {
 const GuestNav = ({ active, onChange }) => {
   const tabs = [{ id: "itinerary", icon: "🗓️", label: "Itinerary" }, { id: "coach", icon: "🚌", label: "Seats" }, { id: "photos", icon: "📸", label: "Photos" }, { id: "excursions", icon: "🎭", label: "Excursions" }, { id: "info", icon: "💡", label: "Info" }, { id: "contact", icon: "📞", label: "Contact" }];
   return (
-    <div className="guest-nav" style={{ display: "flex", borderTop: "1px solid #ffffff10", background: "#0d1520", flexShrink: 0, paddingBottom: "max(env(safe-area-inset-bottom, 0px), 12px)" }}>
+    <div className="guest-nav" style={{ display: "flex", borderTop: "1px solid #ffffff10", background: "#0d1520", flexShrink: 0, paddingBottom: "max(env(safe-area-inset-bottom, 0px), 16px)" }}>
       {tabs.map((tab) => (
         <button key={tab.id} onClick={() => onChange(tab.id)} style={{ flex: 1, padding: "12px 2px 10px", background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, borderTop: `2px solid ${active === tab.id ? "#c9a96e" : "transparent"}` }}>
           <span style={{ fontSize: 18 }}>{tab.icon}</span>
@@ -1834,7 +1834,7 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline, guestName })
   const day = tour.days[activeDay];
   const currentLocation = (day?.location || "").split('-')[0].split('–')[0].trim();
   return (
-    <div style={{ height: "100vh", background: "linear-gradient(160deg,#0d1520 0%,#1a2332 50%,#0d1520 100%)", fontFamily: "'Lato',sans-serif", color: "#f0e6d3", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div style={{ height: "100dvh", minHeight: "-webkit-fill-available", background: "linear-gradient(160deg,#0d1520 0%,#1a2332 50%,#0d1520 100%)", fontFamily: "'Lato',sans-serif", color: "#f0e6d3", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <AnnouncementBanner text={tour.announcement} />
       {isOffline && (
         <div style={{ background: "#2a3a2a", borderBottom: "1px solid #4a6a4a", padding: "8px 20px", display: "flex", alignItems: "center", gap: 8 }}>
@@ -1873,7 +1873,7 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline, guestName })
           </div>
         </div>
       </div>
-      <div style={{ flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+      <div style={{ flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch", paddingBottom: "80px" }}>
         {activePage === "itinerary" && (
           <>
             {tour.days.length === 0 ? <div style={{ padding: 40, textAlign: "center", color: "#405060" }}><div style={{ fontSize: 40, marginBottom: 12 }}>🗓️</div><div>Your itinerary is being prepared. Check back soon!</div></div>
@@ -2429,7 +2429,8 @@ export default function App() {
     <>
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { width: 100%; height: 100%; overflow-x: hidden; }
+        html, body { width: 100%; height: 100%; height: -webkit-fill-available; overflow-x: hidden; }
+        #root { height: 100dvh; height: -webkit-fill-available; }
         @media (orientation: landscape) { .guest-nav { padding: 4px 2px !important; } }
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: #0d1520; }

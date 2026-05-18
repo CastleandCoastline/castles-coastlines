@@ -444,10 +444,14 @@ const SeatingEditor = ({ tour, onSave, onClose, saving }) => {
   const handlePasteNames = () => {
     const names = pasteText.split(/\r?\n/).map(n => n.trim()).filter(Boolean);
     const newData = { ...seatData };
+    // Get all seat numbers in order from COACH_LAYOUT
+    const allSeats = [];
+    COACH_LAYOUT.forEach(row => {
+      row.left.forEach(num => allSeats.push(num));
+      if (row.right && row.right.length > 0) row.right.forEach(num => allSeats.push(num));
+    });
     names.forEach((name, i) => {
-      const r = Math.floor(i / cols);
-      const c = i % cols;
-      if (r < rows) newData[r + "-" + c] = name;
+      if (i < allSeats.length) newData["seat-" + allSeats[i]] = name;
     });
     setSeatData(newData);
     setPasteText("");

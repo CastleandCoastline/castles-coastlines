@@ -2070,7 +2070,43 @@ const EditDayModal = ({ day, onSave, onClose, saving }) => {
         {d.schedule.map((s, i) => (<div key={i} style={{ background: "#0d1520", borderRadius: 10, padding: 12, marginBottom: 8, display: "flex", flexDirection: "column", gap: 6 }}><div style={{ display: "flex", gap: 8 }}><div style={{ flex: "0 0 76px" }}>{inp(s.time, (v) => updSched(i, "time", v), "09:00")}</div><div style={{ flex: 1 }}>{inp(s.label, (v) => updSched(i, "label", v), "Activity")}</div><button onClick={() => setD({ ...d, schedule: d.schedule.filter((_, j) => j !== i) })} style={{ background: "#ff444420", border: "none", borderRadius: 6, color: "#ff6666", cursor: "pointer", padding: "0 8px", fontSize: 16 }}>×</button></div>{inp(s.note, (v) => updSched(i, "note", v), "Note (optional)")}</div>))}
         <button onClick={() => setD({ ...d, schedule: [...d.schedule, { time: "", label: "", note: "" }] })} style={{ width: "100%", padding: "9px", background: "#c9a96e15", border: "1px dashed #c9a96e50", borderRadius: 10, color: "#c9a96e", fontSize: 13, cursor: "pointer", marginBottom: 20 }}>+ Add Time Slot</button>
         <div style={{ fontSize: 11, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>Attractions & Map Pins</div>
-        {d.attractions.map((a, i) => (<div key={i} style={{ background: "#0d1520", borderRadius: 10, padding: 12, marginBottom: 8, display: "flex", flexDirection: "column", gap: 6 }}><div style={{ display: "flex", gap: 8 }}><div style={{ flex: 1 }}>{inp(a.name, (v) => updAttr(i, "name", v), "Attraction name")}</div><button onClick={() => setD({ ...d, attractions: d.attractions.filter((_, j) => j !== i) })} style={{ background: "#ff444420", border: "none", borderRadius: 6, color: "#ff6666", cursor: "pointer", padding: "0 8px", fontSize: 16 }}>×</button></div>{inp(a.desc, (v) => updAttr(i, "desc", v), "Short description")}<div style={{ display: "flex", gap: 6 }}><input value={a.lat} onChange={(e) => updAttr(i, "lat", parseFloat(e.target.value) || 0)} placeholder="Latitude" type="number" step="0.0001" style={{ flex: 1, background: "#1a2332", border: "1px solid #ffffff15", borderRadius: 8, padding: "7px 8px", color: "#c9a96e", fontSize: 12, outline: "none" }} /><input value={a.lng} onChange={(e) => updAttr(i, "lng", parseFloat(e.target.value) || 0)} placeholder="Longitude" type="number" step="0.0001" style={{ flex: 1, background: "#1a2332", border: "1px solid #ffffff15", borderRadius: 8, padding: "7px 8px", color: "#c9a96e", fontSize: 12, outline: "none" }} /></div><div style={{ fontSize: 11, color: "#405060" }}>💡 Right-click in Google Maps → "What's here?" for coordinates</div></div>))}
+        {d.attractions.map((a, i) => (
+          <div key={i} style={{ background: "#0d1520", borderRadius: 10, padding: 12, marginBottom: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ flex: 1 }}>{inp(a.name, (v) => updAttr(i, "name", v), "Attraction name")}</div>
+              <button onClick={() => setD({ ...d, attractions: d.attractions.filter((_, j) => j !== i) })}
+                style={{ background: "#ff444420", border: "none", borderRadius: 6, color: "#ff6666", cursor: "pointer", padding: "0 8px", fontSize: 16 }}>×</button>
+            </div>
+            {inp(a.desc, (v) => updAttr(i, "desc", v), "Short description")}
+            <div style={{ display: "flex", gap: 6 }}>
+              <input value={a.searchQuery || ""} onChange={e => updAttr(i, "searchQuery", e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); fetch("https://geocoding-api.open-meteo.com/v1/search?name=" + encodeURIComponent(e.target.value) + "&count=1&language=en&format=json").then(r => r.json()).then(data => { if (data.results?.[0]) { updAttr(i, "lat", data.results[0].latitude); updAttr(i, "lng", data.results[0].longitude); updAttr(i, "searchDone", data.results[0].name + ", " + data.results[0].country); } }); } }}
+                placeholder="Search location e.g. Edinburgh Castle"
+                style={{ flex: 1, background: "#1a2332", border: "1px solid #c9a96e40", borderRadius: 8, padding: "7px 8px", color: "#f0e6d3", fontSize: 13, outline: "none" }} />
+              <button onClick={() => {
+                const query = a.searchQuery || a.name;
+                if (!query) return;
+                fetch("https://geocoding-api.open-meteo.com/v1/search?name=" + encodeURIComponent(query) + "&count=5&language=en&format=json")
+                  .then(r => r.json())
+                  .then(data => {
+                    const uk = data.results?.find(r => ["GB","IE"].includes(r.country_code)) || data.results?.[0];
+                    if (uk) { updAttr(i, "lat", uk.latitude); updAttr(i, "lng", uk.longitude); updAttr(i, "searchDone", uk.name + ", " + uk.country); }
+                    else updAttr(i, "searchDone", "Not found — try a different name");
+                  });
+              }} style={{ background: "linear-gradient(135deg,#c9a96e,#a07840)", border: "none", borderRadius: 8, padding: "7px 14px", color: "#1a1a2e", fontWeight: 700, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>
+                🔍 Find
+              </button>
+            </div>
+            {a.searchDone && <div style={{ fontSize: 11, color: a.searchDone.includes("Not found") ? "#ff6666" : "#6abf6a", padding: "4px 8px", background: a.searchDone.includes("Not found") ? "#ff444410" : "#6abf6a10", borderRadius: 6 }}>
+              {a.searchDone.includes("Not found") ? "❌ " : "✓ "}{a.searchDone}
+            </div>}
+            <div style={{ display: "flex", gap: 6 }}>
+              <input value={a.lat} onChange={(e) => updAttr(i, "lat", parseFloat(e.target.value) || 0)} placeholder="Latitude" type="number" step="0.0001" style={{ flex: 1, background: "#1a2332", border: "1px solid #ffffff15", borderRadius: 8, padding: "7px 8px", color: "#c9a96e", fontSize: 12, outline: "none" }} />
+              <input value={a.lng} onChange={(e) => updAttr(i, "lng", parseFloat(e.target.value) || 0)} placeholder="Longitude" type="number" step="0.0001" style={{ flex: 1, background: "#1a2332", border: "1px solid #ffffff15", borderRadius: 8, padding: "7px 8px", color: "#c9a96e", fontSize: 12, outline: "none" }} />
+            </div>
+            <div style={{ fontSize: 11, color: "#405060" }}>💡 Type a place name and tap Find, or enter coordinates manually</div>
+          </div>
+        ))}
         <button onClick={() => setD({ ...d, attractions: [...d.attractions, { name: "", desc: "", lat: 54.0, lng: -2.0 }] })} style={{ width: "100%", padding: "9px", background: "#c9a96e15", border: "1px dashed #c9a96e50", borderRadius: 10, color: "#c9a96e", fontSize: 13, cursor: "pointer", marginBottom: 24 }}>+ Add Attraction</button>
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={onClose} style={{ flex: 1, padding: "12px", background: "transparent", border: "1px solid #ffffff20", borderRadius: 12, color: "#8090a0", fontSize: 14, cursor: "pointer" }}>Cancel</button>

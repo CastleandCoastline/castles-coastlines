@@ -2054,6 +2054,7 @@ const EditDayModal = ({ day, onSave, onClose, saving }) => {
   const [d, setD] = useState(JSON.parse(JSON.stringify(day)));
   const updSched = (i, f, v) => { const s = [...d.schedule]; s[i] = { ...s[i], [f]: v }; setD({ ...d, schedule: s }); };
   const updAttr = (i, f, v) => { const a = [...d.attractions]; a[i] = { ...a[i], [f]: v }; setD({ ...d, attractions: a }); };
+  const updAttrMulti = (i, updates) => { const a = [...d.attractions]; a[i] = { ...a[i], ...updates }; setD({ ...d, attractions: a }); };
   const inp = (val, fn, ph, type = "text") => (<input value={val} onChange={(e) => fn(e.target.value)} placeholder={ph} type={type} style={{ background: "#0d1520", border: "1px solid #ffffff20", borderRadius: 8, padding: "8px 10px", color: "#f0e6d3", fontSize: 13, width: "100%", outline: "none" }} />);
   return (
     <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 1000, overflowY: "auto", padding: "20px 16px" }}>
@@ -2080,7 +2081,7 @@ const EditDayModal = ({ day, onSave, onClose, saving }) => {
             {inp(a.desc, (v) => updAttr(i, "desc", v), "Short description")}
             <div style={{ display: "flex", gap: 6 }}>
               <input value={a.searchQuery || ""} onChange={e => updAttr(i, "searchQuery", e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); fetch("https://nominatim.openstreetmap.org/search?q=" + encodeURIComponent(e.target.value) + "&format=json&limit=1&countrycodes=gb,ie", { headers: { "Accept-Language": "en" } }).then(r => r.json()).then(data => { if (data?.[0]) { updAttr(i, "lat", parseFloat(data[0].lat)); updAttr(i, "lng", parseFloat(data[0].lon)); updAttr(i, "searchDone", data[0].display_name.split(",").slice(0,2).join(",")); } }); } }}
+                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); fetch("https://nominatim.openstreetmap.org/search?q=" + encodeURIComponent(e.target.value) + "&format=json&limit=1&countrycodes=gb,ie", { headers: { "Accept-Language": "en" } }).then(r => r.json()).then(data => { if (data?.[0]) { updAttrMulti(i, { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), searchDone: data[0].display_name.split(",").slice(0,2).join(",") }); } }); } }}
                 placeholder="Search location e.g. Edinburgh Castle"
                 style={{ flex: 1, background: "#1a2332", border: "1px solid #c9a96e40", borderRadius: 8, padding: "7px 8px", color: "#f0e6d3", fontSize: 13, outline: "none" }} />
               <button onClick={() => {
@@ -2090,8 +2091,8 @@ const EditDayModal = ({ day, onSave, onClose, saving }) => {
                   .then(r => r.json())
                   .then(data => {
                     const best = data?.find(r => r.display_name.toLowerCase().includes("uk") || r.display_name.toLowerCase().includes("ireland") || r.display_name.toLowerCase().includes("scotland") || r.display_name.toLowerCase().includes("england") || r.display_name.toLowerCase().includes("wales")) || data?.[0];
-                    if (best) { updAttr(i, "lat", parseFloat(best.lat)); updAttr(i, "lng", parseFloat(best.lon)); updAttr(i, "searchDone", best.display_name.split(",").slice(0,2).join(",")); }
-                    else updAttr(i, "searchDone", "Not found — try a different name");
+                    if (best) { updAttrMulti(i, { lat: parseFloat(best.lat), lng: parseFloat(best.lon), searchDone: best.display_name.split(",").slice(0,2).join(",") }); }
+                    else updAttrMulti(i, { searchDone: "Not found — try a different name" });
                   });
               }} style={{ background: "linear-gradient(135deg,#c9a96e,#a07840)", border: "none", borderRadius: 8, padding: "7px 14px", color: "#1a1a2e", fontWeight: 700, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>
                 🔍 Find

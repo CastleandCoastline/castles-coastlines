@@ -124,13 +124,13 @@ async function saveDayToDB(tourId, day) {
 async function saveSeats(tourId, rows, cols, seatData) {
   await supabase.from("seats").delete().eq("tour_id", tourId);
   const toInsert = [];
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const seatNum = r * cols + c + 1;
-      const key = `${r}-${c}`;
-      toInsert.push({ tour_id: tourId, seat_number: seatNum, row: r, col: c, guest_name: seatData[key] || "" });
-    }
-  }
+  // Use COACH_LAYOUT seat numbers as keys
+  COACH_LAYOUT.forEach(row => {
+    [...row.left, ...(row.right || [])].forEach(num => {
+      const key = "seat-" + num;
+      toInsert.push({ tour_id: tourId, seat_number: num, row: 0, col: num, guest_name: seatData[key] || "" });
+    });
+  });
   if (toInsert.length > 0) await supabase.from("seats").insert(toInsert);
 }
 

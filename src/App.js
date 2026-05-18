@@ -2080,17 +2080,17 @@ const EditDayModal = ({ day, onSave, onClose, saving }) => {
             {inp(a.desc, (v) => updAttr(i, "desc", v), "Short description")}
             <div style={{ display: "flex", gap: 6 }}>
               <input value={a.searchQuery || ""} onChange={e => updAttr(i, "searchQuery", e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); fetch("https://geocoding-api.open-meteo.com/v1/search?name=" + encodeURIComponent(e.target.value) + "&count=1&language=en&format=json").then(r => r.json()).then(data => { if (data.results?.[0]) { updAttr(i, "lat", data.results[0].latitude); updAttr(i, "lng", data.results[0].longitude); updAttr(i, "searchDone", data.results[0].name + ", " + data.results[0].country); } }); } }}
+                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); fetch("https://nominatim.openstreetmap.org/search?q=" + encodeURIComponent(e.target.value) + "&format=json&limit=1&countrycodes=gb,ie", { headers: { "Accept-Language": "en" } }).then(r => r.json()).then(data => { if (data?.[0]) { updAttr(i, "lat", parseFloat(data[0].lat)); updAttr(i, "lng", parseFloat(data[0].lon)); updAttr(i, "searchDone", data[0].display_name.split(",").slice(0,2).join(",")); } }); } }}
                 placeholder="Search location e.g. Edinburgh Castle"
                 style={{ flex: 1, background: "#1a2332", border: "1px solid #c9a96e40", borderRadius: 8, padding: "7px 8px", color: "#f0e6d3", fontSize: 13, outline: "none" }} />
               <button onClick={() => {
                 const query = a.searchQuery || a.name;
                 if (!query) return;
-                fetch("https://geocoding-api.open-meteo.com/v1/search?name=" + encodeURIComponent(query) + "&count=5&language=en&format=json")
+                fetch("https://nominatim.openstreetmap.org/search?q=" + encodeURIComponent(query) + "&format=json&limit=5", { headers: { "Accept-Language": "en" } })
                   .then(r => r.json())
                   .then(data => {
-                    const uk = data.results?.find(r => ["GB","IE"].includes(r.country_code)) || data.results?.[0];
-                    if (uk) { updAttr(i, "lat", uk.latitude); updAttr(i, "lng", uk.longitude); updAttr(i, "searchDone", uk.name + ", " + uk.country); }
+                    const best = data?.find(r => r.display_name.toLowerCase().includes("uk") || r.display_name.toLowerCase().includes("ireland") || r.display_name.toLowerCase().includes("scotland") || r.display_name.toLowerCase().includes("england") || r.display_name.toLowerCase().includes("wales")) || data?.[0];
+                    if (best) { updAttr(i, "lat", parseFloat(best.lat)); updAttr(i, "lng", parseFloat(best.lon)); updAttr(i, "searchDone", best.display_name.split(",").slice(0,2).join(",")); }
                     else updAttr(i, "searchDone", "Not found — try a different name");
                   });
               }} style={{ background: "linear-gradient(135deg,#c9a96e,#a07840)", border: "none", borderRadius: 8, padding: "7px 14px", color: "#1a1a2e", fontWeight: 700, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>

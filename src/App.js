@@ -390,6 +390,7 @@ const CoachSeatingPlan = ({ tour, guestName, isGuide }) => {
         <div style={{ textAlign: "center", marginTop: 10 }}>
           <div style={{ fontSize: 10, color: "#405060", letterSpacing: 2, textTransform: "uppercase" }}>Rear of Coach</div>
         </div>
+      </div>
 
       {!guestName && !isGuide && (
         <div style={{ background: "#c9a96e15", border: "1px solid #c9a96e30", borderRadius: 12, padding: "12px 16px", marginTop: 16, fontSize: 13, color: "#a09070", textAlign: "center" }}>

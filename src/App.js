@@ -724,7 +724,8 @@ const LeafletMap = ({ attractions, schedule }) => {
     mapInstanceRef.current = map;
     window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap" }).addTo(map);
 
-    attractions.forEach((a, i) => {
+    const sortedAttractions = [...attractions].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+    sortedAttractions.forEach((a, i) => {
       const isPast = i < nextIdx;
       const isNext = i === nextIdx;
       const bg = isNext ? "#c9a96e" : isPast ? "#506070" : "#1a2332";
@@ -744,7 +745,7 @@ const LeafletMap = ({ attractions, schedule }) => {
 
     // If multiple attractions show all, else zoom to next
     if (attractions.length > 1 && nextIdx === 0) {
-      map.fitBounds(window.L.latLngBounds(attractions.map(a => [a.lat, a.lng])), { padding: [30, 30] });
+      map.fitBounds(window.L.latLngBounds(sortedAttractions.map(a => [a.lat, a.lng])), { padding: [30, 30] });
     }
   }, [attractions, schedule]);
 
@@ -2124,7 +2125,14 @@ const EditDayModal = ({ day, onSave, onClose, saving }) => {
               <button onClick={() => setD({ ...d, attractions: d.attractions.filter((_, j) => j !== i) })}
                 style={{ background: "#ff444420", border: "none", borderRadius: 6, color: "#ff6666", cursor: "pointer", padding: "0 8px", fontSize: 16 }}>×</button>
             </div>
-            {inp(a.desc, (v) => updAttr(i, "desc", v), "Short description")}
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <div style={{ flex: 1 }}>{inp(a.desc, (v) => updAttr(i, "desc", v), "Short description")}</div>
+              <div style={{ flexShrink: 0 }}>
+                <div style={{ fontSize: 10, color: "#c9a96e", marginBottom: 3 }}>Map #</div>
+                <input value={a.sort_order || i + 1} onChange={e => updAttr(i, "sort_order", parseInt(e.target.value) || i + 1)} type="number" min={1} max={20}
+                  style={{ width: 52, background: "#1a2332", border: "1px solid #c9a96e40", borderRadius: 8, padding: "7px 6px", color: "#c9a96e", fontSize: 13, outline: "none", textAlign: "center", fontWeight: 700 }} />
+              </div>
+            </div>
             <div style={{ display: "flex", gap: 6 }}>
               <input value={a.searchQuery || ""} onChange={e => updAttr(i, "searchQuery", e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); fetch("https://nominatim.openstreetmap.org/search?q=" + encodeURIComponent(e.target.value) + "&format=json&limit=1&countrycodes=gb,ie", { headers: { "Accept-Language": "en" } }).then(r => r.json()).then(data => { if (data?.[0]) { updAttrMulti(i, { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), searchDone: data[0].display_name.split(",").slice(0,2).join(",") }); } }); } }}

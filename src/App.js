@@ -690,25 +690,71 @@ const SeatingEditor = ({ tour, onSave, onClose, saving }) => {
 };
 
 // ── Leaflet Map ───────────────────────────────────────────────────────────────
-const LeafletMap = ({ attractions }) => {
+const LeafletMap = ({ attractions, schedule }) => {
   const mapInstanceRef = useRef(null);
   const uid = useRef("map-" + Math.random().toString(36).slice(2));
+
+  const getNextAttractionIndex = () => {
+    if (!schedule?.length) return 0;
+    const nowMins = new Date().getHours() * 60 + new Date().getMinutes();
+    const nextSched = schedule.find(s => {
+      if (!s.time) return false;
+      const parsed = parseTimeMins(s.time);
+      return parsed && parsed.start > nowMins;
+    });
+    if (!nextSched) return attractions.length - 1;
+    // Find attraction closest in sort_order to next schedule item
+    return Math.min(
+      schedule.filter(s => {
+        if (!s.time) return false;
+        const p = parseTimeMins(s.time);
+        return p && p.start <= nowMins;
+      }).length,
+      attractions.length - 1
+    );
+  };
+
   useEffect(() => {
     if (!window.L || !attractions?.length) return;
     if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; }
-    const center = attractions.reduce((a, c) => [a[0] + c.lat / attractions.length, a[1] + c.lng / attractions.length], [0, 0]);
-    const map = window.L.map(uid.current, { zoomControl: true, scrollWheelZoom: false }).setView(center, 13);
+
+    const nextIdx = getNextAttractionIndex();
+    const center = [attractions[nextIdx].lat, attractions[nextIdx].lng];
+    const map = window.L.map(uid.current, { zoomControl: true, scrollWheelZoom: false }).setView(center, 15);
     mapInstanceRef.current = map;
     window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap" }).addTo(map);
+
     attractions.forEach((a, i) => {
-      const icon = window.L.divIcon({ className: "", html: `<div style="width:30px;height:30px;border-radius:50%;background:#c9a96e;border:3px solid #1a2332;display:flex;align-items:center;justify-content:center;font-weight:700;color:#1a1a2e;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,0.5)">${i + 1}</div>`, iconSize: [30, 30], iconAnchor: [15, 15] });
-      window.L.marker([a.lat, a.lng], { icon }).addTo(map).bindPopup(`<strong>${a.name}</strong><br/><span style="color:#aaa">${a.desc}</span>`);
+      const isPast = i < nextIdx;
+      const isNext = i === nextIdx;
+      const bg = isNext ? "#c9a96e" : isPast ? "#506070" : "#1a2332";
+      const border = isNext ? "#a07840" : isPast ? "#304050" : "#c9a96e60";
+      const textColor = isNext ? "#1a1a2e" : "#f0e6d3";
+      const opacity = isPast ? 0.45 : 1;
+      const size = isNext ? 36 : 28;
+      const icon = window.L.divIcon({
+        className: "",
+        html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${bg};border:2px solid ${border};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:${isNext ? 14 : 11}px;color:${textColor};opacity:${opacity};box-shadow:${isNext ? '0 0 0 4px rgba(201,169,110,0.3)' : 'none'}">${i + 1}</div>`,
+        iconSize: [size, size],
+        iconAnchor: [size/2, size/2],
+      });
+      window.L.marker([a.lat, a.lng], { icon }).addTo(map)
+        .bindPopup(`<strong>${a.name}</strong>${a.desc ? '<br/><span style="color:#aaa;font-size:12px">' + a.desc + '</span>' : ''}${isPast ? '<br/><span style="color:#888;font-size:11px">✓ Visited</span>' : isNext ? '<br/><span style="color:#c9a96e;font-size:11px">▶ Next stop</span>' : ''}`);
     });
-    if (attractions.length > 1) map.fitBounds(window.L.latLngBounds(attractions.map((a) => [a.lat, a.lng])), { padding: [30, 30] });
-  }, [attractions]);
+
+    // If multiple attractions show all, else zoom to next
+    if (attractions.length > 1 && nextIdx === 0) {
+      map.fitBounds(window.L.latLngBounds(attractions.map(a => [a.lat, a.lng])), { padding: [30, 30] });
+    }
+  }, [attractions, schedule]);
+
   useEffect(() => () => { if (mapInstanceRef.current) mapInstanceRef.current.remove(); }, []);
   if (!attractions?.length) return null;
-  return <div style={{ marginTop: 16, borderRadius: 14, overflow: "hidden", border: "1px solid #c9a96e30" }}><div id={uid.current} style={{ height: 280, width: "100%", background: "#1a2332" }} /></div>;
+  return (
+    <div style={{ marginTop: 16, borderRadius: 14, overflow: "hidden", border: "1px solid #c9a96e30" }}>
+      <div id={uid.current} style={{ height: 260, width: "100%" }} />
+    </div>
+  );
 };
 
 // ── QR Modal ──────────────────────────────────────────────────────────────────
@@ -2028,7 +2074,7 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline, guestName })
                   );})}
                   {day.attractions?.length > 0 && <>
                     <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, color: "#c9a96e", marginTop: 8, marginBottom: 14 }}>Attractions & Map</div>
-                    <LeafletMap attractions={day.attractions} />
+                    <LeafletMap attractions={day.attractions} schedule={day.schedule} />
                     <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 14 }}>
                       {day.attractions.map((a, i) => (<a key={i} href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a.name + " " + day.location)}`} target="_blank" rel="noopener noreferrer" style={{ background: "#1a2332", border: "1px solid #ffffff10", borderRadius: 10, padding: "12px 14px", display: "flex", alignItems: "center", gap: 12, textDecoration: "none" }}><div style={{ width: 28, height: 28, borderRadius: "50%", background: "#c9a96e", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#1a1a2e", flexShrink: 0 }}>{i + 1}</div><div style={{ flex: 1 }}><div style={{ color: "#f0e6d3", fontWeight: 600, fontSize: 14 }}>{a.name}</div><div style={{ color: "#607080", fontSize: 12, marginTop: 2 }}>{a.desc}</div></div><span style={{ color: "#c9a96e", fontSize: 18 }}>↗</span></a>))}
                     </div>

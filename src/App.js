@@ -274,13 +274,63 @@ const WeatherWidget = ({ location }) => {
   );
 };
 
+
+const COACH_LAYOUT = [
+  { left: [1,2],     right: [3,4] },
+  { left: [5,6],     right: [7,8] },
+  { left: [9,10],    right: [11,12] },
+  { left: [13,14],   right: [15,16] },
+  { left: [17,18],   right: [19,20] },
+  { left: [21,22],   right: null },
+  { left: [23,24],   right: null },
+  { left: [25,26],   right: [27,28] },
+  { left: [29,30],   right: [31,32] },
+  { left: [33,34],   right: [35,36] },
+  { left: [37,38],   right: [39,40] },
+  { left: [41,42],   right: [43,44] },
+  { left: [45,46],   right: [47,48] },
+  { left: [49,50,51,52,53], right: null, isBack: true },
+];
+
+// Clockwise rotation order (14 positions)
+const ROTATION_ORDER = [
+  [1,2], [5,6], [9,10], [13,14], [17,18], [21,22], [23,24],
+  [25,26], [29,30], [33,34], [37,38], [41,42], [45,46],
+  [49,50,51,52,53],
+  [47,48], [43,44], [39,40], [35,36], [31,32], [27,28],
+  [19,20], [15,16], [11,12], [7,8], [3,4]
+];
+
 // ── Coach Seating Plan ────────────────────────────────────────────────────────
 const CoachSeatingPlan = ({ tour, guestName, isGuide }) => {
-  const rows = tour.coach_rows || 10;
-  const cols = tour.coach_cols || 4;
   const seats = tour.seats || [];
+  const getSeatByNum = (num) => seats.find(s => s.seat_number === num);
 
-  const getSeat = (r, c) => seats.find((s) => s.row === r && s.col === c);
+  const SeatTile = ({ num, wide }) => {
+    const seat = getSeatByNum(num);
+    const occupied = seat?.guest_name || "";
+    const firstName = occupied.split(" ")[0] || "";
+    const lastName = occupied.split(" ").slice(1).join(" ") || "";
+    const isMySeat = occupied && guestName && occupied.toLowerCase() === guestName.toLowerCase();
+    return (
+      <div title={occupied ? `Seat ${num} — ${occupied}` : `Seat ${num} — Available`}
+        style={{ flex: wide ? 1 : 1, minHeight: 72, minWidth: 0, borderRadius: 10,
+          background: isMySeat ? "#c9a96e" : occupied ? "#2a4a6b" : "#0d1520",
+          border: `2px solid ${isMySeat ? "#c9a96e" : occupied ? "#3a6a9b" : "#ffffff15"}`,
+          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+          padding: "4px 2px", gap: 1, transition: "all 0.2s" }}>
+        <div style={{ fontSize: 11, color: isMySeat ? "#1a1a2e" : occupied ? "#a0c0e0" : "#506070", fontWeight: 700 }}>{num}</div>
+        {isMySeat && <div style={{ fontSize: 14 }}>⭐</div>}
+        {occupied && !isMySeat && (
+          <>
+            <div style={{ fontSize: firstName.length > 6 ? 8 : 9, fontWeight: 600, color: "#f0e6d3", textAlign: "center", width: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "0 2px" }}>{firstName}</div>
+            {lastName && <div style={{ fontSize: lastName.length > 6 ? 7 : 8, color: "#8090a0", textAlign: "center", width: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "0 2px" }}>{lastName}</div>}
+          </>
+        )}
+        {!occupied && <div style={{ fontSize: 9, color: "#304050" }}>○</div>}
+      </div>
+    );
+  };
 
   return (
     <div style={{ padding: 24 }}>
@@ -311,40 +361,35 @@ const CoachSeatingPlan = ({ tour, guestName, isGuide }) => {
             <div style={{ fontSize: 10, color: "#6a8abf", marginTop: 3, fontWeight: 600, letterSpacing: 1 }}>DRIVER</div>
           </div>
         </div>
-        {/* Seat grid */}
-        <div key={seats.map(s => s.guest_name).join(",")} style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
-          {Array.from({ length: rows }).map((_, r) => (
-            <div key={`row-${r}`} style={{ display: "flex", gap: 6, width: "100%", alignItems: "center" }}>
-              {Array.from({ length: cols }).map((_, c) => {
-                const seatNum = r * cols + c + 1;
-                const seat = getSeat(r, c);
-                const occupied = seat?.guest_name;
-                const isMySeat = occupied && guestName && occupied.toLowerCase() === guestName.toLowerCase();
-                return [
-                  <div key={`seat-${r}-${c}-${occupied || "empty"}`} title={occupied ? `Seat ${seatNum} — ${occupied}` : `Seat ${seatNum} — Available`}
-                    style={{ flex: 1, minHeight: 80, borderRadius: 10, background: isMySeat ? "#c9a96e" : occupied ? "#2a4a6b" : "#0d1520", border: `2px solid ${isMySeat ? "#c9a96e" : occupied ? "#3a6a9b" : "#ffffff15"}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "default", transition: "all 0.2s", gap: 2, padding: "6px 2px" }}>
-                    <div style={{ fontSize: 13, color: isMySeat ? "#1a1a2e" : occupied ? "#a0c0e0" : "#506070", fontWeight: 700, lineHeight: 1 }}>{seatNum}</div>
-                    {isMySeat && <div style={{ fontSize: 16 }}>⭐</div>}
-                    {occupied && !isMySeat && (
-                      <div style={{ fontSize: 11, color: "#a0c0e0", textAlign: "center", padding: "0 3px", lineHeight: 1.3, width: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        <div style={{ fontSize: occupied.split(" ")[0].length > 7 ? 9 : occupied.split(" ")[0].length > 5 ? 10 : 12, fontWeight: 600, textAlign: "center", lineHeight: 1.2, width: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{occupied.split(" ")[0]}</div>
-                        {occupied.split(" ").length > 1 && <div style={{ fontSize: occupied.split(" ").slice(1).join(" ").length > 7 ? 8 : 9, color: "#a0c0e0", lineHeight: 1.2, width: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{occupied.split(" ").slice(1).join(" ")}</div>}
-                      </div>
-                    )}
-                    {!occupied && <div style={{ fontSize: 9, color: "#304050" }}>○</div>}
-                  </div>,
-                  cols === 4 && c === 1 ? <div key={`aisle-${c}`} style={{ width: 20, flexShrink: 0 }} /> : null
-                ];
-              })}
+        {/* Custom seat layout using COACH_LAYOUT */}
+        <div key={seats.map(s => s.guest_name).join(",")} style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+          {COACH_LAYOUT.map((row, rowIdx) => (
+            <div key={rowIdx} style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
+              {/* Left seats */}
+              <div style={{ flex: 1, display: "flex", gap: 4 }}>
+                {row.left.map(num => <SeatTile key={num} num={num} />)}
+              </div>
+              {/* Aisle */}
+              <div style={{ width: 20, flexShrink: 0 }} />
+              {/* Right seats or toilet */}
+              <div style={{ flex: 1, display: "flex", gap: 4 }}>
+                {row.right === null ? (
+                  <div style={{ flex: 1, minHeight: 72, borderRadius: 10, background: "#111a26", border: "1px dashed #ffffff15", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2 }}>
+                    <div style={{ fontSize: 14 }}>🚻</div>
+                    <div style={{ fontSize: 8, color: "#304050" }}>WC</div>
+                  </div>
+                ) : (
+                  row.right.map(num => <SeatTile key={num} num={num} />)
+                )}
+              </div>
             </div>
           ))}
         </div>
 
         {/* Back of coach */}
-        <div style={{ textAlign: "center", marginTop: 14 }}>
+        <div style={{ textAlign: "center", marginTop: 10 }}>
           <div style={{ fontSize: 10, color: "#405060", letterSpacing: 2, textTransform: "uppercase" }}>Rear of Coach</div>
         </div>
-      </div>
 
       {!guestName && !isGuide && (
         <div style={{ background: "#c9a96e15", border: "1px solid #c9a96e30", borderRadius: 12, padding: "12px 16px", marginTop: 16, fontSize: 13, color: "#a09070", textAlign: "center" }}>
@@ -361,7 +406,10 @@ const SeatingEditor = ({ tour, onSave, onClose, saving }) => {
   const [cols, setCols] = useState(tour.coach_cols || 4);
   const [seatData, setSeatData] = useState(() => {
     const d = {};
-    (tour.seats || []).forEach((s) => { d[`${s.row}-${s.col}`] = s.guest_name; });
+    (tour.seats || []).forEach((s) => { 
+      if (s.seat_number) d["seat-" + s.seat_number] = s.guest_name;
+      else d[s.row + "-" + s.col] = s.guest_name;
+    });
     return d;
   });
   const [editing, setEditing] = useState(null);
@@ -383,6 +431,8 @@ const SeatingEditor = ({ tour, onSave, onClose, saving }) => {
   const clearSeat = () => {
     if (editing) { setSeatData((prev) => ({ ...prev, [editing]: "" })); setEditing(null); setNameInput(""); }
   };
+
+  const showStatus = (msg) => { /* status handled by parent */ };
 
   const [rotateAmount, setRotateAmount] = useState(2);
   const [dragFrom, setDragFrom] = useState(null);
@@ -426,29 +476,27 @@ const SeatingEditor = ({ tour, onSave, onClose, saving }) => {
   const [rotateConfirm, setRotateConfirm] = useState(null);
 
   // Build clockwise seat order: left side top→bottom, right side bottom→top
-  const buildClockwiseOrder = () => {
-    const halfCols = Math.floor(cols / 2);
-    const order = [];
-    for (let row = 0; row < rows; row++) {
-      for (let col = 0; col < halfCols; col++) order.push(`${row}-${col}`);
-    }
-    for (let row = rows - 1; row >= 0; row--) {
-      for (let col = cols - 1; col >= halfCols; col--) order.push(`${row}-${col}`);
-    }
-    return order;
-  };
-
   const rotateSeat = (direction) => {
-    const order = buildClockwiseOrder();
+    // Use ROTATION_ORDER which correctly skips toilet and handles back row
+    const order = ROTATION_ORDER;
     const total = order.length;
     const steps = direction === "clockwise" ? rotateAmount : total - (rotateAmount % total);
-    // Start with completely empty seat data
-    const newData = {};
-    order.forEach((key, i) => {
+    const newData = { ...seatData };
+    // Clear all seats first
+    order.forEach(group => {
+      group.forEach(num => { newData["seat-" + num] = ""; });
+    });
+    // Rotate
+    order.forEach((group, i) => {
       const newIndex = (i + steps) % total;
-      const newKey = order[newIndex];
-      // Always set the new key — empty string if no name
-      newData[newKey] = seatData[key] || "";
+      const newGroup = order[newIndex];
+      // Move all names from this group to the new group
+      group.forEach((num, j) => {
+        const name = seatData["seat-" + num] || "";
+        if (name && j < newGroup.length) {
+          newData["seat-" + newGroup[j]] = name;
+        }
+      });
     });
     setSeatData(newData);
     setRotateConfirm(null);
@@ -490,7 +538,11 @@ const SeatingEditor = ({ tour, onSave, onClose, saving }) => {
               style={{ width: 60, background: "#1a2332", border: "1px solid #ffffff20", borderRadius: 8, padding: "6px 8px", color: "#f0e6d3", fontSize: 14, outline: "none", textAlign: "center" }} />
             <label style={{ fontSize: 11, color: "#8090a0" }}>seats</label>
           </div>
-          {rotateConfirm ? (
+          <button onClick={() => { if (window.confirm("Clear all names from the seating plan?")) { setSeatData({}); showStatus && showStatus("✓ All seats cleared"); } }}
+          style={{ width: "100%", padding: "8px", background: "#ff444415", border: "1px solid #ff444430", borderRadius: 8, color: "#ff6666", fontSize: 12, cursor: "pointer", marginBottom: 10 }}>
+          🗑️ Clear All Names
+        </button>
+        {rotateConfirm ? (
             <div>
               <div style={{ fontSize: 12, color: "#ff9966", marginBottom: 8 }}>⚠️ This will move all assigned guests. Are you sure?</div>
               <div style={{ display: "flex", gap: 8 }}>

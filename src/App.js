@@ -289,7 +289,7 @@ const COACH_LAYOUT = [
   { left: [37,38],   right: [39,40] },
   { left: [41,42],   right: [43,44] },
   { left: [45,46],   right: [47,48] },
-  { left: [49,50,51,52,53], right: null, isBack: true },
+  { left: [49,50,51,52,53], right: [], isBack: true },
 ];
 
 // Clockwise rotation order (14 positions)
@@ -365,23 +365,24 @@ const CoachSeatingPlan = ({ tour, guestName, isGuide }) => {
         <div key={seats.map(s => s.guest_name).join(",")} style={{ display: "flex", flexDirection: "column", gap: 5 }}>
           {COACH_LAYOUT.map((row, rowIdx) => (
             <div key={rowIdx} style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
-              {/* Left seats */}
-              <div style={{ flex: 1, display: "flex", gap: 4 }}>
+              {/* Left seats — full width for back row */}
+              <div style={{ flex: row.isBack ? "0 0 100%" : 1, display: "flex", gap: 4 }}>
                 {row.left.map(num => <SeatTile key={num} num={num} />)}
               </div>
-              {/* Aisle */}
-              <div style={{ width: 20, flexShrink: 0 }} />
-              {/* Right seats or toilet */}
-              <div style={{ flex: 1, display: "flex", gap: 4 }}>
-                {row.right === null ? (
-                  <div style={{ flex: 1, minHeight: 72, borderRadius: 10, background: "#111a26", border: "1px dashed #ffffff15", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2 }}>
-                    <div style={{ fontSize: 14 }}>🚻</div>
-                    <div style={{ fontSize: 8, color: "#304050" }}>WC</div>
-                  </div>
-                ) : (
-                  row.right.map(num => <SeatTile key={num} num={num} />)
-                )}
-              </div>
+              {!row.isBack && <div style={{ width: 20, flexShrink: 0 }} />}
+              {/* Right seats, toilet, or empty for back row */}
+              {!row.isBack && (
+                <div style={{ flex: 1, display: "flex", gap: 4 }}>
+                  {row.right === null ? (
+                    <div style={{ flex: 1, minHeight: 72, borderRadius: 10, background: "#111a26", border: "1px dashed #ffffff15", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2 }}>
+                      <div style={{ fontSize: 14 }}>🚻</div>
+                      <div style={{ fontSize: 8, color: "#304050" }}>WC</div>
+                    </div>
+                  ) : (
+                    row.right.map(num => <SeatTile key={num} num={num} />)
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -416,8 +417,8 @@ const SeatingEditor = ({ tour, onSave, onClose, saving }) => {
   const [editing, setEditing] = useState(null);
   const [nameInput, setNameInput] = useState("");
 
-  const handleSeatClick = (r, c) => {
-    const key = `${r}-${c}`;
+  const handleSeatClick = (num) => {
+    const key = "seat-" + num;
     setEditing(key);
     setNameInput(seatData[key] || "");
   };
@@ -594,32 +595,65 @@ const SeatingEditor = ({ tour, onSave, onClose, saving }) => {
             <div style={{ fontSize: 9, color: "#6a8abf", fontWeight: 600 }}>DRIVER</div>
           </div>
         </div>
-          {Array.from({ length: rows }).map((_, r) => (
-            <div key={r} style={{ display: "flex", gap: 4, alignItems: "center", marginBottom: 4, justifyContent: "center" }}>
-              {Array.from({ length: cols }).map((_, c) => {
-                const seatNum = r * cols + c + 1;
-                const key = `${r}-${c}`;
-                const name = seatData[key];
-                const isSelected = editing === key;
-                return (
-                  <div key={c} style={{ display: "flex" }}>
-                    {cols === 4 && c === 2 && <div style={{ width: 12 }} />}
-                    <div onClick={() => { if (editing) return; handleSeatSwap(r + "-" + c); }}
-              onDoubleClick={() => { setDragFrom(null); handleSeatClick(r, c); }}
-                      style={{ width: 40, height: 38, borderRadius: 6, background: dragFrom === (r + "-" + c) ? "#c9a96e40" : isSelected ? "#c9a96e30" : name ? "#2a4a6b" : "#1a2332", border: `1px solid ${isSelected ? "#c9a96e" : name ? "#3a6a9b" : "#ffffff15"}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", gap: 1 }}>
-                      <div style={{ fontSize: 8, fontWeight: 700, color: isSelected ? "#c9a96e" : name ? "#6080a0" : "#304050" }}>{seatNum}</div>
-                      <div style={{ fontSize: 8, color: name ? "#a0b0c0" : "#304050", textAlign: "center", padding: "0 2px", lineHeight: 1.2, overflow: "hidden", maxWidth: 38, whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
-                        {name ? (
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1, width: "100%", overflow: "hidden" }}>
-                          <div style={{ fontSize: name.length > 8 ? 7 : 8, fontWeight: 600, textAlign: "center", lineHeight: 1.2, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name.split(" ")[0]}</div>
-                          {name.split(" ").length > 1 && <div style={{ fontSize: name.split(" ").slice(1).join(" ").length > 6 ? 6 : 7, color: isSelected ? "#c9a96e" : "#8090a0", lineHeight: 1.1, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name.split(" ").slice(1).join(" ")}</div>}
-                        </div>
-                      ) : "○"}
-                      </div>
+          {COACH_LAYOUT.map((row, rowIdx) => (
+            <div key={rowIdx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "stretch" }}>
+              {/* Left seats */}
+              <div style={{ flex: row.isBack ? "0 0 100%" : 1, display: "flex", gap: 3 }}>
+                {row.left.map(num => {
+                  const key = "seat-" + num;
+                  const name = seatData[key] || "";
+                  const isSelected = editing === key;
+                  const isSwapSelected = dragFrom === key;
+                  return (
+                    <div key={num}
+                      onClick={() => { if (editing) return; handleSeatSwap(key); }}
+                      onDoubleClick={() => { setDragFrom(null); handleSeatClick(num); }}
+                      style={{ flex: 1, minHeight: 52, borderRadius: 6, background: isSwapSelected ? "#c9a96e40" : isSelected ? "#c9a96e30" : name ? "#1a3a5a" : "#1a2332", border: `1px solid ${isSwapSelected ? "#c9a96e" : isSelected ? "#c9a96e60" : name ? "#c9a96e40" : "#ffffff15"}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: "3px 2px", gap: 1 }}>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: isSelected ? "#c9a96e" : name ? "#6080a0" : "#304050" }}>{num}</div>
+                      {name ? (
+                        <>
+                          <div style={{ fontSize: name.split(" ")[0].length > 6 ? 7 : 8, fontWeight: 600, color: "#f0e6d3", textAlign: "center", width: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "0 2px" }}>{name.split(" ")[0]}</div>
+                          {name.split(" ").length > 1 && <div style={{ fontSize: 7, color: "#8090a0", textAlign: "center", width: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "0 2px" }}>{name.split(" ").slice(1).join(" ")}</div>}
+                        </>
+                      ) : <div style={{ fontSize: 8, color: "#304050" }}>○</div>}
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+              {/* Aisle */}
+              {!row.isBack && <div style={{ width: 12, flexShrink: 0 }} />}
+              {/* Right seats or toilet */}
+              {!row.isBack && (
+                <div style={{ flex: 1, display: "flex", gap: 3 }}>
+                  {row.right === null ? (
+                    <div style={{ flex: 1, minHeight: 52, borderRadius: 6, background: "#111a26", border: "1px dashed #ffffff10", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                      <div style={{ fontSize: 12 }}>🚻</div>
+                      <div style={{ fontSize: 7, color: "#304050" }}>WC</div>
+                    </div>
+                  ) : (
+                    row.right.map(num => {
+                      const key = "seat-" + num;
+                      const name = seatData[key] || "";
+                      const isSelected = editing === key;
+                      const isSwapSelected = dragFrom === key;
+                      return (
+                        <div key={num}
+                          onClick={() => { if (editing) return; handleSeatSwap(key); }}
+                          onDoubleClick={() => { setDragFrom(null); handleSeatClick(num); }}
+                          style={{ flex: 1, minHeight: 52, borderRadius: 6, background: isSwapSelected ? "#c9a96e40" : isSelected ? "#c9a96e30" : name ? "#1a3a5a" : "#1a2332", border: `1px solid ${isSwapSelected ? "#c9a96e" : isSelected ? "#c9a96e60" : name ? "#c9a96e40" : "#ffffff15"}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: "3px 2px", gap: 1 }}>
+                          <div style={{ fontSize: 9, fontWeight: 700, color: isSelected ? "#c9a96e" : name ? "#6080a0" : "#304050" }}>{num}</div>
+                          {name ? (
+                            <>
+                              <div style={{ fontSize: name.split(" ")[0].length > 6 ? 7 : 8, fontWeight: 600, color: "#f0e6d3", textAlign: "center", width: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "0 2px" }}>{name.split(" ")[0]}</div>
+                              {name.split(" ").length > 1 && <div style={{ fontSize: 7, color: "#8090a0", textAlign: "center", width: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "0 2px" }}>{name.split(" ").slice(1).join(" ")}</div>}
+                            </>
+                          ) : <div style={{ fontSize: 8, color: "#304050" }}>○</div>}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>

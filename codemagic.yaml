@@ -22,6 +22,10 @@ workflows:
         script: npx cap sync ios
       - name: Set up code signing
         script: xcode-project use-profiles
+      - name: Increment build number
+        script: |
+          cd $CM_BUILD_DIR/ios/App
+          agvtool new-version -all $(($(app-store-connect get-latest-testflight-build-number "$APP_ID") + 1))
       - name: Build iOS
         script: |
           xcode-project build-ipa \

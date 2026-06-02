@@ -6,11 +6,11 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: co.uk.castleandcoastline
+      groups:
+        - default
       vars:
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
-      groups:
-        - default
     scripts:
       - name: Install dependencies
         script: npm install
@@ -27,7 +27,10 @@ workflows:
           keychain initialize
           app-store-connect fetch-signing-files co.uk.castleandcoastline \
             --type IOS_APP_STORE \
-            --create
+            --create \
+            --certificate-key=$APP_STORE_CONNECT_PRIVATE_KEY \
+            --issuer-id=$APP_STORE_CONNECT_ISSUER_ID \
+            --key-id=$APP_STORE_CONNECT_KEY_IDENTIFIER
           keychain add-certificates
           xcode-project use-profiles
       - name: Build iOS

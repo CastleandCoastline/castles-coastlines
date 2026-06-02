@@ -3,7 +3,7 @@ workflows:
     name: Castle & Coastline iOS
     max_build_duration: 60
     integrations:
-      app_store_connect: Codemagic
+      app_store_connect: Codemagic 2.0
     environment:
       ios_signing:
         provisioning_profiles:

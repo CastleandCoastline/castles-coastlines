@@ -24,13 +24,13 @@ workflows:
             --type IOS_APP_STORE \
             --create
           keychain add-certificates
-          xcode-project use-profiles --project $CM_BUILD_DIR/$XCODE_PROJECT
       - name: Build iOS
         script: |
           xcode-project build-ipa \
             --project "$CM_BUILD_DIR/$XCODE_PROJECT" \
             --scheme "$XCODE_SCHEME" \
-            --archive-xcargs "DEVELOPMENT_TEAM=$APPLE_TEAM_ID"
+            --archive-xcargs "CODE_SIGN_STYLE=Automatic DEVELOPMENT_TEAM=$APPLE_TEAM_ID" \
+            --export-xcargs "CODE_SIGN_STYLE=Automatic DEVELOPMENT_TEAM=$APPLE_TEAM_ID"
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log

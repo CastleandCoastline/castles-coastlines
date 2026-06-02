@@ -25,9 +25,24 @@ workflows:
             --create \
             --certificate-key="$CERTIFICATE_PRIVATE_KEY"
           keychain add-certificates
+      - name: Build iOS
+        script: |
+          xcodebuild \
+            -project "$CM_BUILD_DIR/$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME" \
+            -configuration Release \
+            -archivePath "$CM_BUILD_DIR/build/ios/App.xcarchive" \
+            CODE_SIGN_STYLE=Automatic \
+            DEVELOPMENT_TEAM=$APPLE_TEAM_ID \
+            archive
+          xcodebuild \
+            -exportArchive \
+            -archivePath "$CM_BUILD_DIR/build/ios/App.xcarchive" \
+            -exportOptionsPlist "$CM_BUILD_DIR/ios/App/exportOptions.plist" \
+            -exportPath "$CM_BUILD_DIR/build/ios/ipa"
       - name: Create export options
         script: |
-          cat > /Users/builder/export_options.plist << EOF
+          cat > $CM_BUILD_DIR/ios/App/exportOptions.plist << EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -36,19 +51,11 @@ workflows:
             <string>app-store</string>
             <key>teamID</key>
             <string>BJMJVUB7R7</string>
-            <key>uploadBitcode</key>
-            <false/>
-            <key>uploadSymbols</key>
-            <true/>
+            <key>signingStyle</key>
+            <string>automatic</string>
           </dict>
           </plist>
           EOF
-      - name: Build iOS
-        script: |
-          xcode-project build-ipa \
-            --project "$CM_BUILD_DIR/$XCODE_PROJECT" \
-            --scheme "$XCODE_SCHEME" \
-            --export-options-plist /Users/builder/export_options.plist
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log

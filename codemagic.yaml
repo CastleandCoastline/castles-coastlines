@@ -17,7 +17,7 @@ workflows:
         script: npx cap sync ios
       - name: Install CocoaPods
         script: |
-          cd ios/App
+          cd $CM_BUILD_DIR/ios/App
           pod install
       - name: Set up code signing
         script: |
@@ -30,7 +30,7 @@ workflows:
       - name: Build iOS
         script: |
           xcode-project build-ipa \
-            --workspace "$XCODE_WORKSPACE" \
+            --workspace "$CM_BUILD_DIR/$XCODE_WORKSPACE" \
             --scheme "$XCODE_SCHEME"
     artifacts:
       - build/ios/ipa/*.ipa

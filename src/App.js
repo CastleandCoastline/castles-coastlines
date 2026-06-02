@@ -2611,8 +2611,9 @@ export default function App() {
     <>
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { width: 100%; height: 100%; height: -webkit-fill-available; overflow-x: hidden; }
-        #root { height: 100dvh; height: -webkit-fill-available; }
+        html, body { width: 100%; height: 100%; height: -webkit-fill-available; overflow-x: hidden; background: #0d1520; }
+        #root { height: 100dvh; height: -webkit-fill-available; background: #0d1520; }
+        .app-header { padding-top: max(env(safe-area-inset-top), 12px) !important; }
         @media (orientation: landscape) { .guest-nav { padding: 4px 2px !important; } }
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: #0d1520; }

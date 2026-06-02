@@ -25,24 +25,10 @@ workflows:
             --create \
             --certificate-key="$CERTIFICATE_PRIVATE_KEY"
           keychain add-certificates
-      - name: Build iOS
-        script: |
-          xcodebuild \
-            -project "$CM_BUILD_DIR/$XCODE_PROJECT" \
-            -scheme "$XCODE_SCHEME" \
-            -configuration Release \
-            -archivePath "$CM_BUILD_DIR/build/ios/App.xcarchive" \
-            CODE_SIGN_STYLE=Automatic \
-            DEVELOPMENT_TEAM=$APPLE_TEAM_ID \
-            archive
-          xcodebuild \
-            -exportArchive \
-            -archivePath "$CM_BUILD_DIR/build/ios/App.xcarchive" \
-            -exportOptionsPlist "$CM_BUILD_DIR/ios/App/exportOptions.plist" \
-            -exportPath "$CM_BUILD_DIR/build/ios/ipa"
       - name: Create export options
         script: |
-          cat > $CM_BUILD_DIR/ios/App/exportOptions.plist << EOF
+          mkdir -p $CM_BUILD_DIR/build/ios
+          cat > $CM_BUILD_DIR/exportOptions.plist << EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -56,6 +42,25 @@ workflows:
           </dict>
           </plist>
           EOF
+          echo "Export options created:"
+          cat $CM_BUILD_DIR/exportOptions.plist
+      - name: Build iOS
+        script: |
+          xcodebuild \
+            -project "$CM_BUILD_DIR/$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME" \
+            -configuration Release \
+            -archivePath "$CM_BUILD_DIR/build/ios/App.xcarchive" \
+            -allowProvisioningUpdates \
+            CODE_SIGN_STYLE=Automatic \
+            DEVELOPMENT_TEAM=$APPLE_TEAM_ID \
+            archive
+          xcodebuild \
+            -exportArchive \
+            -archivePath "$CM_BUILD_DIR/build/ios/App.xcarchive" \
+            -exportOptionsPlist "$CM_BUILD_DIR/exportOptions.plist" \
+            -exportPath "$CM_BUILD_DIR/build/ios/ipa" \
+            -allowProvisioningUpdates
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log

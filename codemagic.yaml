@@ -6,15 +6,13 @@ workflows:
       app_store_connect: Codemagic
     environment:
       ios_signing:
-        distribution_type: app_store
-        bundle_identifier: co.uk.castleandcoastline
-      groups:
-        - default
+        provisioning_profiles:
+          - castle_coastline_appstore
+        certificates:
+          - castle_coastline_dist
       vars:
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
-        BUNDLE_ID: "co.uk.castleandcoastline"
-        APPLE_TEAM_ID: "BJMJVUB7R7"
     scripts:
       - name: Install dependencies
         script: npm install
@@ -23,13 +21,7 @@ workflows:
       - name: Sync Capacitor
         script: npx cap sync ios
       - name: Set up code signing
-        script: |
-          keychain initialize
-          app-store-connect fetch-signing-files $BUNDLE_ID \
-            --type IOS_APP_STORE \
-            --create
-          keychain add-certificates
-          xcode-project use-profiles
+        script: xcode-project use-profiles
       - name: Build iOS
         script: |
           xcode-project build-ipa \

@@ -7,6 +7,7 @@
     "@capacitor/core": "^8.3.2",
     "@capacitor/ios": "^8.3.2",
     "@capacitor/push-notifications": "^8.1.1",
+    "@capacitor/splash-screen": "^8.0.1",
     "@supabase/supabase-js": "^2.104.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",

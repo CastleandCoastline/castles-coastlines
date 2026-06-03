@@ -1585,7 +1585,7 @@ const GuestLogin = ({ tours, onUnlock, onGuideLogin }) => {
 const AnnouncementBanner = ({ text }) => {
   if (!text) return null;
   return (
-    <div style={{ background: "linear-gradient(135deg,#f0851f,#d2691e)", paddingTop: "max(env(safe-area-inset-top, 12px), 12px)", paddingBottom: 12, paddingLeft: 20, paddingRight: 20, display: "flex", gap: 10, alignItems: "flex-start" }}>
+    <div style={{ background: "linear-gradient(135deg,#f0851f,#d2691e)", paddingTop: "max(env(safe-area-inset-top, 60px), 60px)", paddingBottom: 12, paddingLeft: 20, paddingRight: 20, display: "flex", gap: 10, alignItems: "flex-start" }}>
       <span style={{ fontSize: 18, flexShrink: 0 }}>📢</span>
       <div><div style={{ fontSize: 11, fontWeight: 700, color: "#1a1a2e", letterSpacing: 1, textTransform: "uppercase" }}>Guide Update</div><div style={{ fontSize: 14, color: "#1a1a2e", marginTop: 2, fontWeight: 500 }}>{text}</div></div>
     </div>
@@ -2066,7 +2066,7 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline, guestName })
       )}
       <div style={{ background: "linear-gradient(180deg,#0a0f1a 0%,transparent 100%)", borderBottom: "1px solid #ffffff10" }}>
         {/* Branding bar — full width */}
-        <div style={{ background: "#1a2332", paddingTop: "max(env(safe-area-inset-top, 64px), 64px)", paddingBottom: "12px", paddingLeft: "20px", paddingRight: "20px", display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ background: "#1a2332", paddingTop: tour.announcement ? "12px" : "max(env(safe-area-inset-top, 64px), 64px)", paddingBottom: "12px", paddingLeft: "20px", paddingRight: "20px", display: "flex", alignItems: "center", gap: 12 }}>
           <img src="/logo-app.png" alt="logo" style={{ width: 44, height: 44, objectFit: "contain", flexShrink: 0 }} />
           <div style={{ flex: 1 }}>
             <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 26, fontWeight: 700, color: "#f0e6d3", lineHeight: 1.1 }}>Castle & Coastline</div>

@@ -10,7 +10,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Set window background to dark navy so no white shows at screen edges
         let navy = UIColor(red: 13.0/255.0, green: 21.0/255.0, blue: 32.0/255.0, alpha: 1.0)
         window?.backgroundColor = navy
-        window?.rootViewController?.view.backgroundColor = navy
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.window?.rootViewController?.view.backgroundColor = navy
+            self.window?.rootViewController?.view.subviews.forEach { $0.backgroundColor = navy }
+        }
         return true
     }
 

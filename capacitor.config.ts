@@ -5,6 +5,7 @@ const config: CapacitorConfig = {
   appName: 'Castle and Coastline',
   webDir: 'build',
   ios: {
+    handleApplicationNotifications: false,
     contentInset: 'never',
     backgroundColor: '#0d1520',
     scrollEnabled: false,

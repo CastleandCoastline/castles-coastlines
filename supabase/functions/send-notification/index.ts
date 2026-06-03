@@ -18,6 +18,7 @@ serve(async (req) => {
 
     const body: Record<string, unknown> = {
       app_id: ONESIGNAL_APP_ID,
+      target_channel: "push",
       headings: { en: title },
       contents: { en: message },
       filters: [{ field: "tag", key: "tour_id", relation: "=", value: tourId }],

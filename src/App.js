@@ -1982,7 +1982,7 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline, guestName })
       )}
       <div style={{ background: "linear-gradient(180deg,#0a0f1a 0%,transparent 100%)", borderBottom: "1px solid #ffffff10" }}>
         {/* Branding bar — full width */}
-        <div className="app-header" style={{ background: "#1a2332", padding: "12px 20px", paddingTop: "max(env(safe-area-inset-top, 0px), 12px)", display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ background: "#1a2332", paddingTop: "max(env(safe-area-inset-top, 44px), 44px)", paddingBottom: "12px", paddingLeft: "20px", paddingRight: "20px", display: "flex", alignItems: "center", gap: 12 }}>
           <img src="/logo-app.png" alt="logo" style={{ width: 44, height: 44, objectFit: "contain", flexShrink: 0 }} />
           <div style={{ flex: 1 }}>
             <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 26, fontWeight: 700, color: "#f0e6d3", lineHeight: 1.1 }}>Castle & Coastline</div>
@@ -2625,7 +2625,7 @@ export default function App() {
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { width: 100%; height: 100%; height: -webkit-fill-available; overflow-x: hidden; background: #0d1520; }
         #root { height: 100dvh; height: -webkit-fill-available; background: #0d1520; }
-        .app-header { padding-top: max(env(safe-area-inset-top), 12px) !important; }
+        .app-header { padding-top: max(env(safe-area-inset-top, 44px), 44px) !important; }
         @media (orientation: landscape) { .guest-nav { padding: 4px 2px !important; } }
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: #0d1520; }

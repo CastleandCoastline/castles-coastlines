@@ -51,6 +51,10 @@
 <array>
 <string>remote-notification</string>
 </array>
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>Castle &amp; Coastline uses your location to find nearby facilities such as hospitals, pharmacies and police stations.</string>
+<key>NSLocationAlwaysUsageDescription</key>
+<string>Castle &amp; Coastline uses your location to find nearby facilities.</string>
 <key>ITSAppUsesNonExemptEncryption</key>
 <false/>
 <key>UIViewControllerBasedStatusBarAppearance</key>

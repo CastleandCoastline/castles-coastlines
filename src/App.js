@@ -2637,31 +2637,24 @@ const GuideDashboard = ({ tours, onLogout, onRefresh, onViewTour }) => {
 // ── OneSignal Notification Helper ────────────────────────────────────────────
 const ONESIGNAL_APP_ID = "7c02d0d0-5dff-4f7b-b1fe-79382b8235ef";
 
+const SUPABASE_FN_URL = "https://pukdpnkgsyewvbswoqyo.supabase.co/functions/v1/send-notification";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1a2Rwbmtnc3lld3Zic3dvcXlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3NTkwNDQsImV4cCI6MjA5MjMzNTA0NH0.UskWETDFraGynpZ2oT039DYpxGu8EJrgUgFN0AQ3Q8o";
+
 const sendTourNotification = async (tourId, title, message, sendAt = null) => {
   try {
-    const body = {
-      app_id: ONESIGNAL_APP_ID,
-      headings: { en: title },
-      contents: { en: message },
-      filters: [
-        { field: "tag", key: "tour_id", relation: "=", value: tourId }
-      ],
-    };
-    if (sendAt) body.send_after = sendAt;
-    
-    const res = await fetch("https://api.onesignal.com/notifications", {
+    const res = await fetch(SUPABASE_FN_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Key ${process.env.REACT_APP_ONESIGNAL_API_KEY}`
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify({ tourId, title, message, sendAt })
     });
     const data = await res.json();
     if (data.errors) throw new Error(JSON.stringify(data.errors));
     return data;
   } catch(e) {
-    console.error("OneSignal error:", e);
+    console.error("Notification send error:", e);
     throw e;
   }
 };

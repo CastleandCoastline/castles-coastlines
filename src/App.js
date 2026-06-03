@@ -2635,8 +2635,6 @@ const GuideDashboard = ({ tours, onLogout, onRefresh, onViewTour }) => {
 
 // ── Root ──────────────────────────────────────────────────────────────────────
 // ── OneSignal Notification Helper ────────────────────────────────────────────
-const ONESIGNAL_APP_ID = "7c02d0d0-5dff-4f7b-b1fe-79382b8235ef";
-
 const SUPABASE_FN_URL = "https://pukdpnkgsyewvbswoqyo.supabase.co/functions/v1/send-notification";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1a2Rwbmtnc3lld3Zic3dvcXlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3NTkwNDQsImV4cCI6MjA5MjMzNTA0NH0.UskWETDFraGynpZ2oT039DYpxGu8EJrgUgFN0AQ3Q8o";
 

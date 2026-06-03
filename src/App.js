@@ -2464,7 +2464,20 @@ const GuideDashboard = ({ tours, onLogout, onRefresh, onViewTour }) => {
   const addTour = async (t) => { setSaving(true); try { await saveTourToDB(t); await onRefresh(); setActiveTourId(t.id); setShowAddTour(false); showStatus("✓ Tour created"); } catch (e) { showStatus("❌ Failed"); } setSaving(false); };
   const saveSettings = async (settings) => { setSaving(true); try { await supabase.from("tours").update({ notes: settings.notes, guide_name: settings.guide_name, guide_phone: settings.guide_phone, guide_email: settings.guide_email, start_date: settings.start_date, current_day_override: null }).eq("id", tour.id); await onRefresh(); setShowSettings(false); showStatus("✓ Saved"); } catch (e) { showStatus("❌ Failed"); } setSaving(false); };
   const saveSeating = async (rows, cols, seatData) => { setSaving(true); try { await supabase.from("tours").update({ coach_rows: rows, coach_cols: cols }).eq("id", tour.id); await saveSeats(tour.id, rows, cols, seatData); await onRefresh(); setShowSeating(false); showStatus("✓ Seating plan saved"); } catch (e) { showStatus("❌ Failed to save seating"); } setSaving(false); };
-  const saveAnnouncement = async () => { try { await supabase.from("tours").update({ announcement: announcementDraft }).eq("id", tour.id); await onRefresh(); setAnnouncementSaved(true); setTimeout(() => setAnnouncementSaved(false), 2500); } catch (e) { showStatus("❌ Failed"); } };
+  const saveAnnouncement = async () => {
+    try {
+      await supabase.from("tours").update({ announcement: announcementDraft }).eq("id", tour.id);
+      await onRefresh();
+      setAnnouncementSaved(true);
+      setTimeout(() => setAnnouncementSaved(false), 2500);
+      // Send push notification to guests on this tour
+      if (announcementDraft.trim() && !tour.notifications_ended) {
+        try {
+          await sendTourNotification(tour.id, "Guide Update 📢", announcementDraft);
+        } catch(e) { console.log("Notification send failed:", e); }
+      }
+    } catch (e) { showStatus("❌ Failed"); }
+  };
   const clearAnnouncement = async () => { setAnnouncementDraft(""); await supabase.from("tours").update({ announcement: "" }).eq("id", tour.id); await onRefresh(); };
   const savePassword = async () => { try { await supabase.from("tours").update({ password: passwordDraft.toUpperCase() }).eq("id", tour.id); await onRefresh(); setEditingPassword(false); showStatus("✓ Code updated"); } catch (e) { showStatus("❌ Failed"); } };
   const deleteTour = async () => { if (!window.confirm(`Permanently delete "${tour.name}"?`)) return; setSaving(true); try { await deleteTourFromDB(tour.id); await onRefresh(); showStatus("✓ Deleted"); } catch (e) { showStatus("❌ Failed"); } setSaving(false); };

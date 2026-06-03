@@ -1970,6 +1970,15 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline, guestName })
 
   const [activeDay, setActiveDay] = useState(calcDayIndex);
   const day = tour.days[activeDay];
+
+  // Keep the app fresh while open: refresh data + countdown every 30s, and on foreground
+  const [, forceTick] = useState(0);
+  useEffect(() => {
+    const tick = setInterval(() => { forceTick(t => t + 1); }, 30000);
+    const onVisible = () => { if (document.visibilityState === 'visible') forceTick(t => t + 1); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { clearInterval(tick); document.removeEventListener('visibilitychange', onVisible); };
+  }, []);
   const currentLocation = (day?.location || "").split('-')[0].split('–')[0].trim();
 
   // Has the tour finished? (past the final day)

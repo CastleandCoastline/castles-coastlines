@@ -1971,6 +1971,90 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline, guestName })
   const [activeDay, setActiveDay] = useState(calcDayIndex);
   const day = tour.days[activeDay];
   const currentLocation = (day?.location || "").split('-')[0].split('–')[0].trim();
+
+  // Has the tour finished? (past the final day)
+  const tourIsComplete = (() => {
+    if (tour.notifications_ended) return true; // manual override from guide
+    if (!tour.start_date) return false;
+    const start = new Date(tour.start_date);
+    const end = new Date(start);
+    end.setDate(end.getDate() + tour.duration); // day after final day
+    end.setHours(0, 0, 0, 0);
+    return new Date() >= end;
+  })();
+
+  // Once tour is complete, cancel any pending reminders and untag from OneSignal
+  useEffect(() => {
+    if (!tourIsComplete) return;
+    (async () => {
+      try {
+        const { LocalNotifications } = await import('@capacitor/local-notifications');
+        const pending = await LocalNotifications.getPending();
+        if (pending.notifications.length) {
+          await LocalNotifications.cancel({ notifications: pending.notifications.map(n => ({ id: n.id })) });
+        }
+      } catch(e) { console.log('Could not cancel reminders:', e); }
+      try {
+        const { OneSignal } = await import('@onesignal/capacitor-plugin');
+        await OneSignal.User.removeTag("tour_id");
+        console.log('Tour complete — removed tour_id tag, notifications stopped');
+      } catch(e) { console.log('Could not remove tag:', e); }
+    })();
+  }, [tourIsComplete]);
+
+  // Schedule local notifications (10 mins before each schedule item) — works offline
+  useEffect(() => {
+    if (isGuide) return; // only guests get reminders
+    if (tourIsComplete) return; // no reminders after tour ends
+    const scheduleLocalReminders = async () => {
+      try {
+        const { LocalNotifications } = await import('@capacitor/local-notifications');
+        const perm = await LocalNotifications.requestPermissions();
+        if (perm.display !== 'granted') return;
+
+        // Clear any previously scheduled reminders to avoid duplicates
+        const pending = await LocalNotifications.getPending();
+        if (pending.notifications.length) {
+          await LocalNotifications.cancel({ notifications: pending.notifications.map(n => ({ id: n.id })) });
+        }
+
+        const tourStartDate = tour.start_date ? new Date(tour.start_date) : null;
+        if (!tourStartDate) return;
+
+        const toSchedule = [];
+        let notifId = 1;
+        tour.days.forEach(d => {
+          if (!d.schedule?.length) return;
+          const dayDate = new Date(tourStartDate);
+          dayDate.setDate(dayDate.getDate() + (d.day - 1));
+          d.schedule.forEach(item => {
+            if (!item.time || !item.label) return;
+            const parsed = parseTimeMins(item.time);
+            if (!parsed) return;
+            const itemDate = new Date(dayDate);
+            itemDate.setHours(Math.floor(parsed.start / 60), parsed.start % 60, 0, 0);
+            const reminderDate = new Date(itemDate.getTime() - 10 * 60 * 1000);
+            if (reminderDate > new Date()) {
+              toSchedule.push({
+                id: notifId++,
+                title: `⏰ ${item.label} in 10 minutes`,
+                body: item.note || `${item.label} is starting soon — please be ready!`,
+                schedule: { at: reminderDate },
+              });
+            }
+          });
+        });
+
+        if (toSchedule.length) {
+          await LocalNotifications.schedule({ notifications: toSchedule });
+          console.log(`Scheduled ${toSchedule.length} local reminders`);
+        }
+      } catch(e) {
+        console.log('Local notifications not available:', e);
+      }
+    };
+    scheduleLocalReminders();
+  }, [tour.id, tour.start_date]);
   return (
     <div style={{ height: "100dvh", minHeight: "-webkit-fill-available", background: "linear-gradient(160deg,#0d1520 0%,#1a2332 50%,#0d1520 100%)", fontFamily: "'Lato',sans-serif", color: "#f0e6d3", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <AnnouncementBanner text={tour.announcement} />
@@ -2374,25 +2458,6 @@ const GuideDashboard = ({ tours, onLogout, onRefresh, onViewTour }) => {
 
   const showStatus = (msg) => { setStatusMsg(msg); setTimeout(() => setStatusMsg(""), 3000); };
   const saveDay = async (updatedDay) => { setSaving(true); try { await saveDayToDB(tour.id, updatedDay); await onRefresh(); setEditingDay(null); showStatus("✓ Day saved");
-      // Schedule 10-min reminders for each schedule item
-      try {
-        const tourStartDate = tour.start_date ? new Date(tour.start_date) : null;
-        if (tourStartDate && updatedDay.schedule?.length) {
-          const dayDate = new Date(tourStartDate);
-          dayDate.setDate(dayDate.getDate() + (updatedDay.day - 1));
-          for (const item of updatedDay.schedule) {
-            if (!item.time || !item.label) continue;
-            const parsed = parseTimeMins(item.time);
-            if (!parsed) continue;
-            const itemDate = new Date(dayDate);
-            itemDate.setHours(Math.floor(parsed.start / 60), parsed.start % 60, 0, 0);
-            const reminderDate = new Date(itemDate.getTime() - 10 * 60 * 1000);
-            if (reminderDate > new Date()) {
-              await sendTourNotification(tour.id, `⏰ ${item.label} in 10 minutes`, item.note || `${item.label} is starting soon — please be ready!`, reminderDate.toISOString());
-            }
-          }
-        }
-      } catch(e) { console.log("Schedule reminders failed:", e); }
     } catch (e) { showStatus("❌ Save failed"); } setSaving(false); };
   const addDay = () => { const n = tour.days.length > 0 ? Math.max(...tour.days.map((d) => d.day)) + 1 : 1; setEditingDay({ day: n, title: `Day ${n}`, location: "", schedule: [], attractions: [] }); };
   const deleteDay = async (day) => { if (!window.confirm(`Delete Day ${day.day}?`)) return; setSaving(true); try { if (day.id) await deleteDayFromDB(day.id); await onRefresh(); showStatus("✓ Day deleted"); } catch (e) { showStatus("❌ Delete failed"); } setSaving(false); };
@@ -2474,6 +2539,16 @@ const GuideDashboard = ({ tours, onLogout, onRefresh, onViewTour }) => {
             </div>
           </div>
         </div>
+        <button onClick={async () => {
+          const ending = !tour.notifications_ended;
+          if (ending && !window.confirm("End all notifications for this tour? Guests can still use the app but will stop receiving reminders and announcements.")) return;
+          await supabase.from("tours").update({ notifications_ended: ending }).eq("id", tour.id);
+          await onRefresh();
+          showStatus(ending ? "✓ Notifications ended for this tour" : "✓ Notifications re-enabled");
+        }}
+          style={{ width: "100%", padding: "12px", background: tour.notifications_ended ? "#2a3a2a" : "#3a2a2a", border: `1px solid ${tour.notifications_ended ? "#4a6a4a" : "#6a4a4a"}`, borderRadius: 12, color: tour.notifications_ended ? "#8aba8a" : "#e0a0a0", fontWeight: 600, fontSize: 13, cursor: "pointer", marginBottom: 10 }}>
+          {tour.notifications_ended ? "🔕 Notifications ended — tap to re-enable" : "🔔 End tour notifications"}
+        </button>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
           <button onClick={() => onViewTour(tour)} style={{ padding: "13px", background: "#1a2332", border: "1px solid #ffffff15", borderRadius: 12, color: "#8090a0", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>👁 Guest View</button>
           <button onClick={() => onViewTour(tour, "photos")} style={{ padding: "13px", background: "#1a2332", border: "1px solid #c9a96e40", borderRadius: 12, color: "#c9a96e", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>📸 Photos</button>

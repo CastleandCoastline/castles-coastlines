@@ -2373,7 +2373,27 @@ const GuideDashboard = ({ tours, onLogout, onRefresh, onViewTour }) => {
   }, [activeTourId]);
 
   const showStatus = (msg) => { setStatusMsg(msg); setTimeout(() => setStatusMsg(""), 3000); };
-  const saveDay = async (updatedDay) => { setSaving(true); try { await saveDayToDB(tour.id, updatedDay); await onRefresh(); setEditingDay(null); showStatus("✓ Day saved"); } catch (e) { showStatus("❌ Save failed"); } setSaving(false); };
+  const saveDay = async (updatedDay) => { setSaving(true); try { await saveDayToDB(tour.id, updatedDay); await onRefresh(); setEditingDay(null); showStatus("✓ Day saved");
+      // Schedule 10-min reminders for each schedule item
+      try {
+        const tourStartDate = tour.start_date ? new Date(tour.start_date) : null;
+        if (tourStartDate && updatedDay.schedule?.length) {
+          const dayDate = new Date(tourStartDate);
+          dayDate.setDate(dayDate.getDate() + (updatedDay.day - 1));
+          for (const item of updatedDay.schedule) {
+            if (!item.time || !item.label) continue;
+            const parsed = parseTimeMins(item.time);
+            if (!parsed) continue;
+            const itemDate = new Date(dayDate);
+            itemDate.setHours(Math.floor(parsed.start / 60), parsed.start % 60, 0, 0);
+            const reminderDate = new Date(itemDate.getTime() - 10 * 60 * 1000);
+            if (reminderDate > new Date()) {
+              await sendTourNotification(tour.id, `⏰ ${item.label} in 10 minutes`, item.note || `${item.label} is starting soon — please be ready!`, reminderDate.toISOString());
+            }
+          }
+        }
+      } catch(e) { console.log("Schedule reminders failed:", e); }
+    } catch (e) { showStatus("❌ Save failed"); } setSaving(false); };
   const addDay = () => { const n = tour.days.length > 0 ? Math.max(...tour.days.map((d) => d.day)) + 1 : 1; setEditingDay({ day: n, title: `Day ${n}`, location: "", schedule: [], attractions: [] }); };
   const deleteDay = async (day) => { if (!window.confirm(`Delete Day ${day.day}?`)) return; setSaving(true); try { if (day.id) await deleteDayFromDB(day.id); await onRefresh(); showStatus("✓ Day deleted"); } catch (e) { showStatus("❌ Delete failed"); } setSaving(false); };
   const addTour = async (t) => { setSaving(true); try { await saveTourToDB(t); await onRefresh(); setActiveTourId(t.id); setShowAddTour(false); showStatus("✓ Tour created"); } catch (e) { showStatus("❌ Failed"); } setSaving(false); };
@@ -2526,6 +2546,38 @@ const GuideDashboard = ({ tours, onLogout, onRefresh, onViewTour }) => {
 };
 
 // ── Root ──────────────────────────────────────────────────────────────────────
+// ── OneSignal Notification Helper ────────────────────────────────────────────
+const ONESIGNAL_APP_ID = "5ce7ebfb-2c27-4686-82d4-f8b580e20997";
+
+const sendTourNotification = async (tourId, title, message, sendAt = null) => {
+  try {
+    const body = {
+      app_id: ONESIGNAL_APP_ID,
+      headings: { en: title },
+      contents: { en: message },
+      filters: [
+        { field: "tag", key: "tour_id", relation: "=", value: tourId }
+      ],
+    };
+    if (sendAt) body.send_after = sendAt;
+    
+    const res = await fetch("https://onesignal.com/api/v1/notifications", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Basic ${process.env.REACT_APP_ONESIGNAL_API_KEY}`
+      },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (data.errors) throw new Error(JSON.stringify(data.errors));
+    return data;
+  } catch(e) {
+    console.error("OneSignal error:", e);
+    throw e;
+  }
+};
+
 export default function App() {
   const [tours, setTours] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -2596,6 +2648,8 @@ export default function App() {
         OneSignal.initialize("5ce7ebfb-2c27-4686-82d4-f8b580e20997");
         await OneSignal.Notifications.requestPermission(true);
         console.log('OneSignal initialised');
+        // Store init function globally so we can tag after login
+        window._oneSignalReady = true;
       } catch(e) {
         console.log('OneSignal not available:', e);
       }
@@ -2611,6 +2665,16 @@ export default function App() {
 
   const liveTour = guestTourId ? tours.find((t) => t.id === guestTourId) : null;
   const handleViewTour = (tour, page = "itinerary") => { setGuestTourId(tour.id); setGuestStartPage(page); setIsGuide(true); setView("guest"); };
+
+  const tagGuestDevice = async (tourId) => {
+    try {
+      const { OneSignal } = await import('@onesignal/capacitor-plugin');
+      await OneSignal.User.addTag("tour_id", tourId);
+      console.log("Tagged device with tour_id:", tourId);
+    } catch(e) {
+      console.log("Could not tag device:", e);
+    }
+  };
 
   if (loading) return (
     <div style={{ minHeight: "100vh", background: "#0d1520", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "'Lato',sans-serif", color: "#f0e6d3" }}>
@@ -2650,7 +2714,7 @@ export default function App() {
                 📵 You're offline — using saved tour data
               </div>
             )}
-            <GuestLogin tours={tours} onUnlock={(tour, surname) => { setGuestTourId(tour.id); setGuestStartPage("itinerary"); setGuestName(surname); setIsGuide(false); setView("guest"); }} onGuideLogin={() => { setIsGuide(true); setView("guide"); }} />
+            <GuestLogin tours={tours} onUnlock={(tour, surname) => { setGuestTourId(tour.id); setGuestStartPage("itinerary"); setGuestName(surname); setIsGuide(false); setView("guest"); tagGuestDevice(tour.id); }} onGuideLogin={() => { setIsGuide(true); setView("guide"); }} />
           </>
         )}
         {view === "guide" && isGuide && <GuideDashboard tours={tours} onLogout={() => { setIsGuide(false); setView("login"); }} onRefresh={fetchTours} onViewTour={handleViewTour} />}

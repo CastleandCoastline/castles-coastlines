@@ -1982,7 +1982,7 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline, guestName })
       )}
       <div style={{ background: "linear-gradient(180deg,#0a0f1a 0%,transparent 100%)", borderBottom: "1px solid #ffffff10" }}>
         {/* Branding bar — full width */}
-        <div style={{ background: "#1a2332", paddingTop: "max(env(safe-area-inset-top, 54px), 54px)", paddingBottom: "12px", paddingLeft: "20px", paddingRight: "20px", display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ background: "#1a2332", paddingTop: "max(env(safe-area-inset-top, 64px), 64px)", paddingBottom: "12px", paddingLeft: "20px", paddingRight: "20px", display: "flex", alignItems: "center", gap: 12 }}>
           <img src="/logo-app.png" alt="logo" style={{ width: 44, height: 44, objectFit: "contain", flexShrink: 0 }} />
           <div style={{ flex: 1 }}>
             <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 26, fontWeight: 700, color: "#f0e6d3", lineHeight: 1.1 }}>Castle & Coastline</div>

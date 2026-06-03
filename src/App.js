@@ -2589,6 +2589,19 @@ export default function App() {
     const viewportMeta = document.querySelector('meta[name="viewport"]');
     if (viewportMeta) viewportMeta.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no';
 
+    // Initialise OneSignal if running as native app
+    setTimeout(() => {
+      try {
+        if (window.plugins && window.plugins.OneSignal) {
+          window.plugins.OneSignal.initialize("5ce7ebfb-2c27-4686-82d4-f8b580e20997");
+          window.plugins.OneSignal.Notifications.requestPermission(true);
+          console.log('OneSignal initialised');
+        }
+      } catch(e) {
+        console.log('OneSignal not available:', e);
+      }
+    }, 2000);
+
     // Register service worker for offline support
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/service-worker.js')

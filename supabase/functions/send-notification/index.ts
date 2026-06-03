@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const ONESIGNAL_APP_ID = "5ce7ebfb-2c27-4686-82d4-f8b580e20997";
+const ONESIGNAL_APP_ID = "7c02d0d0-5dff-4f7b-b1fe-79382b8235ef";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {

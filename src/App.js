@@ -2635,7 +2635,7 @@ const GuideDashboard = ({ tours, onLogout, onRefresh, onViewTour }) => {
 
 // ── Root ──────────────────────────────────────────────────────────────────────
 // ── OneSignal Notification Helper ────────────────────────────────────────────
-const ONESIGNAL_APP_ID = "5ce7ebfb-2c27-4686-82d4-f8b580e20997";
+const ONESIGNAL_APP_ID = "7c02d0d0-5dff-4f7b-b1fe-79382b8235ef";
 
 const sendTourNotification = async (tourId, title, message, sendAt = null) => {
   try {
@@ -2733,7 +2733,7 @@ export default function App() {
     setTimeout(async () => {
       try {
         const { OneSignal } = await import('@onesignal/capacitor-plugin');
-        OneSignal.initialize("5ce7ebfb-2c27-4686-82d4-f8b580e20997");
+        OneSignal.initialize("7c02d0d0-5dff-4f7b-b1fe-79382b8235ef");
         await OneSignal.Notifications.requestPermission(true);
         console.log('OneSignal initialised');
         // Store init function globally so we can tag after login

@@ -1995,7 +1995,7 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline, guestName })
         }
       } catch(e) { console.log('Could not cancel reminders:', e); }
       try {
-        const { OneSignal } = await import('@onesignal/capacitor-plugin');
+        const _osMod = await import('@onesignal/capacitor-plugin'); const OneSignal = _osMod.OneSignal || _osMod.default;
         await OneSignal.User.removeTag("tour_id");
         console.log('Tour complete — removed tour_id tag, notifications stopped');
       } catch(e) { console.log('Could not remove tag:', e); }
@@ -2732,7 +2732,7 @@ export default function App() {
     // Initialise OneSignal if running as native app
     setTimeout(async () => {
       try {
-        const { OneSignal } = await import('@onesignal/capacitor-plugin');
+        const _osMod = await import('@onesignal/capacitor-plugin'); const OneSignal = _osMod.OneSignal || _osMod.default;
         OneSignal.initialize("7c02d0d0-5dff-4f7b-b1fe-79382b8235ef");
         await OneSignal.Notifications.requestPermission(true);
         console.log('OneSignal initialised');
@@ -2756,7 +2756,7 @@ export default function App() {
 
   const tagGuestDevice = async (tourId) => {
     try {
-      const { OneSignal } = await import('@onesignal/capacitor-plugin');
+      const _osMod = await import('@onesignal/capacitor-plugin'); const OneSignal = _osMod.OneSignal || _osMod.default;
       await OneSignal.User.addTag("tour_id", tourId);
       console.log("Tagged device with tour_id:", tourId);
     } catch(e) {

@@ -1585,7 +1585,7 @@ const GuestLogin = ({ tours, onUnlock, onGuideLogin }) => {
 const AnnouncementBanner = ({ text }) => {
   if (!text) return null;
   return (
-    <div style={{ background: "linear-gradient(135deg,#c9a96e,#a07840)", padding: "12px 20px", display: "flex", gap: 10, alignItems: "flex-start" }}>
+    <div style={{ background: "linear-gradient(135deg,#f0851f,#d2691e)", paddingTop: "max(env(safe-area-inset-top, 12px), 12px)", paddingBottom: 12, paddingLeft: 20, paddingRight: 20, display: "flex", gap: 10, alignItems: "flex-start" }}>
       <span style={{ fontSize: 18, flexShrink: 0 }}>📢</span>
       <div><div style={{ fontSize: 11, fontWeight: 700, color: "#1a1a2e", letterSpacing: 1, textTransform: "uppercase" }}>Guide Update</div><div style={{ fontSize: 14, color: "#1a1a2e", marginTop: 2, fontWeight: 500 }}>{text}</div></div>
     </div>
@@ -2649,11 +2649,11 @@ const sendTourNotification = async (tourId, title, message, sendAt = null) => {
     };
     if (sendAt) body.send_after = sendAt;
     
-    const res = await fetch("https://onesignal.com/api/v1/notifications", {
+    const res = await fetch("https://api.onesignal.com/notifications", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Basic ${process.env.REACT_APP_ONESIGNAL_API_KEY}`
+        "Authorization": `Key ${process.env.REACT_APP_ONESIGNAL_API_KEY}`
       },
       body: JSON.stringify(body)
     });

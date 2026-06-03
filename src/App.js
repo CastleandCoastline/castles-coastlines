@@ -2590,17 +2590,16 @@ export default function App() {
     if (viewportMeta) viewportMeta.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no';
 
     // Initialise OneSignal if running as native app
-    setTimeout(() => {
+    setTimeout(async () => {
       try {
-        if (window.plugins && window.plugins.OneSignal) {
-          window.plugins.OneSignal.initialize("5ce7ebfb-2c27-4686-82d4-f8b580e20997");
-          window.plugins.OneSignal.Notifications.requestPermission(true);
-          console.log('OneSignal initialised');
-        }
+        const { OneSignal } = await import('@onesignal/capacitor-plugin');
+        OneSignal.initialize("5ce7ebfb-2c27-4686-82d4-f8b580e20997");
+        await OneSignal.Notifications.requestPermission(true);
+        console.log('OneSignal initialised');
       } catch(e) {
         console.log('OneSignal not available:', e);
       }
-    }, 2000);
+    }, 1000);
 
     // Register service worker for offline support
     if ('serviceWorker' in navigator) {

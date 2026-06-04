@@ -2624,10 +2624,11 @@ const MasterExcursionEditor = ({ item, onSave, onClose, saving }) => {
         <input value={m.price} onChange={e=>setM({...m,price:e.target.value})} placeholder="Price (£)" type="number" style={fld} />
         <input value={m.duration} onChange={e=>setM({...m,duration:e.target.value})} placeholder="Duration (e.g. 3 hours)" style={fld} />
         <input value={m.location} onChange={e=>setM({...m,location:e.target.value})} placeholder="Location / area" style={fld} />
-        <label style={{ display:"block", border:"1px dashed #ffffff20", borderRadius:10, padding:14, textAlign:"center", cursor:"pointer", marginBottom:14, color:"#c9a96e", fontSize:13 }}>
+        <label style={{ display:"block", border:"1px dashed #ffffff20", borderRadius:10, padding:14, textAlign:"center", cursor:"pointer", marginBottom:8, color:"#c9a96e", fontSize:13 }}>
           {preview ? <img src={preview} alt="preview" style={{ width:"100%", maxHeight:160, objectFit:"cover", borderRadius:8 }} /> : "📷 Add a photo"}
           <input type="file" accept="image/*" style={{ display:"none" }} onChange={e=>{ const f=e.target.files[0]; if(f){ setFile(f); setPreview(URL.createObjectURL(f)); } }} />
         </label>
+        {preview && <button onClick={() => { setFile(null); setPreview(null); setM({...m, image_path: ""}); }} style={{ width:"100%", padding:"8px", background:"transparent", border:"1px solid #ff444440", borderRadius:8, color:"#ff6666", fontSize:12, cursor:"pointer", marginBottom:14 }}>Remove photo</button>}
         <div style={{ display:"flex", gap:10 }}>
           <button onClick={onClose} style={{ flex:1, padding:"12px", background:"#0d1520", border:"1px solid #ffffff20", borderRadius:12, color:"#8090a0", cursor:"pointer" }}>Cancel</button>
           <button onClick={()=>{ if(!m.title.trim()){return;} onSave(m, file); }} disabled={saving} style={{ flex:2, padding:"12px", background:saving?"#806040":"linear-gradient(135deg,#c9a96e,#a07840)", border:"none", borderRadius:12, color:"#1a1a2e", fontWeight:700, cursor:saving?"default":"pointer" }}>{saving?"Saving…":"Save"}</button>

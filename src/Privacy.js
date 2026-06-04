@@ -2,7 +2,8 @@ import React from "react";
 
 export default function Privacy() {
   return (
-    <div style={{ maxWidth: 760, margin: "0 auto", padding: "40px 24px", fontFamily: "'Lato',sans-serif", color: "#1a2332", lineHeight: 1.7 }}>
+    <div style={{ minHeight: "100vh", background: "#ffffff" }}>
+      <div style={{ maxWidth: 760, margin: "0 auto", padding: "40px 24px", fontFamily: "'Lato',sans-serif", color: "#1a2332", lineHeight: 1.7 }}>
       <h1 style={{ fontFamily: "'Playfair Display',serif" }}>Privacy Policy</h1>
       <p><em>Last updated: June 2026</em></p>
 
@@ -31,6 +32,7 @@ export default function Privacy() {
 
       <h2>Contact</h2>
       <p>For any questions about this policy or your data, contact Castle &amp; Coastline Tours at: <strong>danriding26@gmail.com</strong></p>
+      </div>
     </div>
   );
 }

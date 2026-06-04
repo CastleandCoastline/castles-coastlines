@@ -2517,7 +2517,7 @@ const ExcursionManager = ({ tour, onClose, onRefresh, showStatus }) => {
 
         <button onClick={onClose} style={{ width: "100%", marginTop: 8, padding: "12px", background: "transparent", border: "1px solid #ffffff20", borderRadius: 12, color: "#8090a0", fontSize: 14, cursor: "pointer" }}>Close</button>
       </div>
-      {editingExc !== null && <ExcursionEditor excursion={editingExc?.id ? editingExc : null} tourId={tour.id} onSave={handleSaveExcursion} onClose={() => setEditingExc(null)} saving={saving} />}
+      {editingExc !== null && <ExcursionEditor excursion={editingExc && Object.keys(editingExc).length ? editingExc : null} tourId={tour.id} onSave={handleSaveExcursion} onClose={() => setEditingExc(null)} saving={saving} />}
       {showLibPicker && (
         <div style={{ position: "fixed", inset: 0, background: "#000000aa", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setShowLibPicker(false)}>
           <div onClick={e => e.stopPropagation()} style={{ background: "#1a2332", borderRadius: 16, padding: 20, maxWidth: 480, width: "100%", maxHeight: "85vh", overflowY: "auto" }}>

@@ -2666,7 +2666,10 @@ const GuideDashboard = ({ tours, onLogout, onRefresh, onViewTour }) => {
       <div style={{ background: "linear-gradient(135deg,#1a2332 0%,#0d1520 100%)", padding: "28px 24px 20px", borderBottom: "1px solid #c9a96e30" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div><div style={{ fontSize: 11, letterSpacing: 3, color: "#c9a96e", textTransform: "uppercase", marginBottom: 6 }}>Guide Dashboard</div><div style={{ fontFamily: "'Playfair Display',serif", fontSize: 26, fontWeight: 700 }}>Castle & Coastline</div></div>
-          <button onClick={onLogout} style={{ background: "none", border: "1px solid #ffffff20", borderRadius: 8, color: "#607080", fontSize: 12, cursor: "pointer", padding: "6px 10px" }}>Log out</button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={() => setShowLibrary(true)} style={{ background: "#c9a96e15", border: "1px solid #c9a96e40", borderRadius: 8, color: "#c9a96e", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: "6px 10px" }}>📚 Library</button>
+            <button onClick={onLogout} style={{ background: "none", border: "1px solid #ffffff20", borderRadius: 8, color: "#607080", fontSize: 12, cursor: "pointer", padding: "6px 10px" }}>Log out</button>
+          </div>
         </div>
       </div>
       <div style={{ padding: "16px 20px 0", borderBottom: "1px solid #ffffff10" }}>
@@ -2798,6 +2801,7 @@ const GuideDashboard = ({ tours, onLogout, onRefresh, onViewTour }) => {
       {showSettings && <TourSettingsModal tour={tour} onSave={saveSettings} onClose={() => setShowSettings(false)} saving={saving} />}
       {showSeating && <SeatingEditor tour={tour} onSave={saveSeating} onClose={() => setShowSeating(false)} saving={saving} />}
       {showExcursions && <ExcursionManager tour={tour} onClose={() => setShowExcursions(false)} onRefresh={onRefresh} showStatus={showStatus} />}
+      {showLibrary && <ExcursionLibrary onClose={() => setShowLibrary(false)} showStatus={showStatus} />}
     </div>
   );
 };

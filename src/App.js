@@ -2402,6 +2402,8 @@ const TourSettingsModal = ({ tour, onSave, onClose, saving }) => {
 
 // ── Excursion Manager (Guide) ────────────────────────────────────────────────
 const ExcursionManager = ({ tour, onClose, onRefresh, showStatus }) => {
+  const [showLibPicker, setShowLibPicker] = useState(false);
+  const [libItems, setLibItems] = useState([]);
   const [excursions, setExcursions] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -2470,10 +2472,16 @@ const ExcursionManager = ({ tour, onClose, onRefresh, showStatus }) => {
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#607080", fontSize: 22, cursor: "pointer" }}>×</button>
         </div>
 
-        <button onClick={() => setEditingExc({})}
-          style={{ width: "100%", padding: "11px", background: "#c9a96e15", border: "1px dashed #c9a96e50", borderRadius: 10, color: "#c9a96e", fontSize: 13, cursor: "pointer", marginBottom: 12 }}>
-          + Add New Excursion
-        </button>
+        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+          <button onClick={() => setEditingExc({})}
+            style={{ flex: 1, padding: "11px", background: "#c9a96e15", border: "1px dashed #c9a96e50", borderRadius: 10, color: "#c9a96e", fontSize: 13, cursor: "pointer" }}>
+            + New Excursion
+          </button>
+          <button onClick={async () => { try { setLibItems(await loadMasterExcursions()); setShowLibPicker(true); } catch(e){ showStatus("❌ Could not load library"); } }}
+            style={{ flex: 1, padding: "11px", background: "#1a2332", border: "1px solid #c9a96e40", borderRadius: 10, color: "#c9a96e", fontSize: 13, cursor: "pointer" }}>
+            📚 Add from Library
+          </button>
+        </div>
         {deletedExc && (
           <div style={{ background: "#2a3a2a", border: "1px solid #4a6a4a", borderRadius: 10, padding: "10px 14px", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ fontSize: 12, color: "#8aba8a" }}>"{deletedExc.title}" deleted</div>
@@ -2510,6 +2518,26 @@ const ExcursionManager = ({ tour, onClose, onRefresh, showStatus }) => {
         <button onClick={onClose} style={{ width: "100%", marginTop: 8, padding: "12px", background: "transparent", border: "1px solid #ffffff20", borderRadius: 12, color: "#8090a0", fontSize: 14, cursor: "pointer" }}>Close</button>
       </div>
       {editingExc !== null && <ExcursionEditor excursion={editingExc?.id ? editingExc : null} tourId={tour.id} onSave={handleSaveExcursion} onClose={() => setEditingExc(null)} saving={saving} />}
+      {showLibPicker && (
+        <div style={{ position: "fixed", inset: 0, background: "#000000aa", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setShowLibPicker(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "#1a2332", borderRadius: 16, padding: 20, maxWidth: 480, width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
+            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, color: "#f0e6d3", marginBottom: 4 }}>Add from Library</div>
+            <div style={{ color: "#7080a0", fontSize: 13, marginBottom: 16 }}>Pick an excursion — you'll set the date and deadline next.</div>
+            {libItems.length === 0 ? <div style={{ color: "#607080", textAlign: "center", padding: 20 }}>Your library is empty. Add excursions via the 📚 Library button on the dashboard.</div>
+              : libItems.map(m => (
+                <div key={m.id} onClick={() => { setShowLibPicker(false); setEditingExc({ title: m.title, subtitle: m.subtitle, description: m.description, price: m.price, location: m.location, image_path: m.image_path, date: "", deadline: "", sort_order: 0 }); }}
+                  style={{ display: "flex", gap: 12, alignItems: "center", background: "#0d1520", border: "1px solid #ffffff10", borderRadius: 12, padding: 10, marginBottom: 8, cursor: "pointer" }}>
+                  {m.url && <img src={m.url} alt={m.title} style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 8, flexShrink: 0 }} />}
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, color: "#f0e6d3", fontSize: 14 }}>{m.title}</div>
+                    <div style={{ color: "#7080a0", fontSize: 12 }}>£{m.price}{m.duration ? ` · ${m.duration}` : ""}{m.location ? ` · ${m.location}` : ""}</div>
+                  </div>
+                </div>
+              ))}
+            <button onClick={() => setShowLibPicker(false)} style={{ width: "100%", marginTop: 8, padding: "11px", background: "transparent", border: "1px solid #ffffff20", borderRadius: 12, color: "#8090a0", fontSize: 14, cursor: "pointer" }}>Cancel</button>
+          </div>
+        </div>
+      )}
       {viewingBookings && <ExcursionSummary excursion={viewingBookings} bookings={bookings} onClose={() => setViewingBookings(null)} onDeleteBooking={handleDeleteBooking} />}
     </div>
   );

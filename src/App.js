@@ -194,13 +194,19 @@ async function loadMasterExcursions() {
   }));
 }
 async function saveMasterExcursion(m) {
-  const { data, error } = await supabase.from("master_excursions").upsert({
-    id: m.id || undefined, title: m.title, subtitle: m.subtitle || "",
+  const row = {
+    title: m.title, subtitle: m.subtitle || "",
     description: m.description || "", price: parseFloat(m.price) || 0,
     duration: m.duration || "", location: m.location || "", image_path: m.image_path || ""
-  }).select().single();
-  if (error) throw error;
-  return data;
+  };
+  let res;
+  if (m.id) {
+    res = await supabase.from("master_excursions").update(row).eq("id", m.id).select().single();
+  } else {
+    res = await supabase.from("master_excursions").insert(row).select().single();
+  }
+  if (res.error) throw res.error;
+  return res.data;
 }
 async function deleteMasterExcursion(id) { await supabase.from("master_excursions").delete().eq("id", id); }
 async function uploadMasterExcursionPhoto(file, masterId) {

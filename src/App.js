@@ -194,8 +194,10 @@ async function uploadExcursionPhoto(file, excursionId) {
   return path;
 }
 
-async function loadPhotos(tourId) {
-  const { data, error } = await supabase.from("photos").select("*").eq("tour_id", tourId).order("created_at", { ascending: false });
+async function loadPhotos(tourId, includeReported = false) {
+  let q = supabase.from("photos").select("*").eq("tour_id", tourId);
+  if (!includeReported) q = q.eq("reported", false);
+  const { data, error } = await q.order("created_at", { ascending: false });
   if (error) throw error;
   return (data || []).map((p) => ({ ...p, url: supabase.storage.from(BUCKET).getPublicUrl(p.storage_path).data.publicUrl }));
 }
@@ -211,6 +213,9 @@ async function uploadPhoto(tourId, file, caption, uploadedBy) {
 async function deletePhoto(photo) {
   await supabase.storage.from(BUCKET).remove([photo.storage_path]);
   await supabase.from("photos").delete().eq("id", photo.id);
+}
+async function reportPhoto(photo) {
+  await supabase.from("photos").update({ reported: true }).eq("id", photo.id);
 }
 
 // ── Weather Widget ────────────────────────────────────────────────────────────
@@ -722,7 +727,7 @@ const LeafletMap = ({ attractions, schedule }) => {
     const center = [attractions[nextIdx].lat, attractions[nextIdx].lng];
     const map = window.L.map(uid.current, { zoomControl: true, scrollWheelZoom: false }).setView(center, 15);
     mapInstanceRef.current = map;
-    window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap" }).addTo(map);
+    window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap contributors" }).addTo(map);
 
     const sortedAttractions = [...attractions].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
     sortedAttractions.forEach((a, i) => {
@@ -799,6 +804,7 @@ const Lightbox = ({ photo, onClose, onDelete, isGuide }) => (
       {photo.caption && <div style={{ color: "#f0e6d3", fontSize: 15, fontWeight: 500, marginBottom: 6 }}>{photo.caption}</div>}
       <div style={{ color: "#607080", fontSize: 12 }}>📷 {photo.uploaded_by} · {new Date(photo.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</div>
       {isGuide && <button onClick={() => { onDelete(photo); onClose(); }} style={{ marginTop: 14, padding: "8px 20px", background: "#ff444420", border: "1px solid #ff444440", borderRadius: 10, color: "#ff6666", fontSize: 13, cursor: "pointer" }}>Delete Photo</button>}
+      {!isGuide && <button onClick={async () => { if (window.confirm("Report this photo as inappropriate? It will be hidden immediately and reviewed.")) { await reportPhoto(photo); onClose(); window.alert("Thank you. This photo has been hidden and will be reviewed."); } }} style={{ marginTop: 14, marginLeft: 8, padding: "8px 20px", background: "#ffffff10", border: "1px solid #ffffff20", borderRadius: 10, color: "#a0b0c0", fontSize: 13, cursor: "pointer" }}>⚐ Report</button>}
     </div>
   </div>
 );
@@ -847,9 +853,23 @@ const UploadModal = ({ tourId, onUploaded, onClose }) => {
 
 const PhotoLibrary = ({ tour, isGuide }) => {
   const [photos, setPhotos] = useState([]); const [loading, setLoading] = useState(true); const [showUpload, setShowUpload] = useState(false); const [lightbox, setLightbox] = useState(null);
-  const fetchPhotos = async () => { setLoading(true); try { setPhotos(await loadPhotos(tour.id)); } catch (e) { console.error(e); } setLoading(false); };
+  const [reported, setReported] = useState([]);
+  const fetchPhotos = async () => {
+    setLoading(true);
+    try {
+      const all = await loadPhotos(tour.id, isGuide);
+      if (isGuide) {
+        setPhotos(all.filter(p => !p.reported));
+        setReported(all.filter(p => p.reported));
+      } else {
+        setPhotos(all);
+      }
+    } catch (e) { console.error(e); }
+    setLoading(false);
+  };
   useEffect(() => { fetchPhotos(); }, [tour.id]);
   const handleDelete = async (photo) => { if (!window.confirm("Delete this photo?")) return; try { await deletePhoto(photo); fetchPhotos(); } catch (e) { alert("Failed to delete"); } };
+  const handleRestore = async (photo) => { try { await supabase.from("photos").update({ reported: false }).eq("id", photo.id); fetchPhotos(); } catch (e) { alert("Failed to restore"); } };
   return (
     <div style={{ padding: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
@@ -857,6 +877,22 @@ const PhotoLibrary = ({ tour, isGuide }) => {
         <button onClick={() => setShowUpload(true)} style={{ background: "linear-gradient(135deg,#c9a96e,#a07840)", border: "none", borderRadius: 10, padding: "8px 14px", color: "#1a1a2e", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>+ Add Photo</button>
       </div>
       <div style={{ color: "#7080a0", fontSize: 13, marginBottom: 24 }}>Shared memories from everyone on the tour</div>
+      {isGuide && reported.length > 0 && (
+        <div style={{ background: "#3a2a2a", border: "1px solid #6a4a4a", borderRadius: 12, padding: 14, marginBottom: 20 }}>
+          <div style={{ color: "#e0a0a0", fontWeight: 700, fontSize: 13, marginBottom: 10 }}>⚐ {reported.length} reported photo{reported.length !== 1 ? "s" : ""} — hidden from guests, awaiting your review</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            {reported.map((photo) => (
+              <div key={photo.id} style={{ borderRadius: 12, overflow: "hidden", background: "#1a2332", border: "1px solid #6a4a4a" }}>
+                <img src={photo.url} alt={photo.caption} style={{ width: "100%", aspectRatio: "1", objectFit: "cover", display: "block" }} />
+                <div style={{ padding: 8, display: "flex", gap: 6 }}>
+                  <button onClick={() => handleRestore(photo)} style={{ flex: 1, padding: "7px", background: "#2a3a2a", border: "1px solid #4a6a4a", borderRadius: 8, color: "#8aba8a", fontSize: 12, cursor: "pointer" }}>Restore</button>
+                  <button onClick={() => handleDelete(photo)} style={{ flex: 1, padding: "7px", background: "#ff444420", border: "1px solid #ff444440", borderRadius: 8, color: "#ff6666", fontSize: 12, cursor: "pointer" }}>Delete</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {loading ? <div style={{ textAlign: "center", padding: "40px 0", color: "#405060" }}><div style={{ fontSize: 32, marginBottom: 10 }}>📷</div><div>Loading photos…</div></div>
         : photos.length === 0 ? <div style={{ textAlign: "center", padding: "40px 20px", color: "#405060", border: "1px dashed #ffffff15", borderRadius: 16 }}><div style={{ fontSize: 40, marginBottom: 12 }}>📸</div><div style={{ marginBottom: 16 }}>No photos yet — be the first!</div><button onClick={() => setShowUpload(true)} style={{ background: "linear-gradient(135deg,#c9a96e,#a07840)", border: "none", borderRadius: 10, padding: "10px 20px", color: "#1a1a2e", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>Add First Photo</button></div>
         : <><div style={{ fontSize: 12, color: "#506070", marginBottom: 14 }}>{photos.length} photo{photos.length !== 1 ? "s" : ""} shared</div>
@@ -1575,7 +1611,7 @@ const GuestLogin = ({ tours, onUnlock, onGuideLogin }) => {
         </button>
       </div>
       <div style={{ marginTop: 40, background: "#1a2332", borderRadius: 14, padding: "14px 18px", maxWidth: 300, border: "1px solid #ffffff10" }}>
-        <div style={{ fontSize: 12, color: "#506070", textAlign: "center", lineHeight: 1.7 }}>📲 <strong style={{ color: "#8090a0" }}>Add to your home screen</strong> for quick access<br /><span style={{ fontSize: 11 }}>Tap Share → "Add to Home Screen" in Safari</span></div>
+        <div style={{ fontSize: 12, color: "#506070", textAlign: "center", lineHeight: 1.7 }}>🔔 <strong style={{ color: "#8090a0" }}>Allow notifications</strong> to get tour updates<br /><span style={{ fontSize: 11 }}>Your guide can send live announcements and you'll get a reminder 10 minutes before each activity — even offline.</span></div>
       </div>
     </div>
   );

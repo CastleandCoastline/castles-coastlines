@@ -1802,7 +1802,6 @@ const CurrencyConverter = () => {
 // ── Useful Info Page ───────────────────────────────────────────────────────────
 const UsefulInfoPage = ({ tour, currentLocation }) => {
   const notes = tour.notes || "";
-  const paragraphs = notes.split("\n").filter(p => p.trim());
   const region = detectRegion(currentLocation || "");
 
   return (
@@ -1846,13 +1845,8 @@ const UsefulInfoPage = ({ tour, currentLocation }) => {
       {notes ? (
         <div>
           <div style={{ fontSize: 12, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", marginBottom: 12, fontWeight: 600 }}>Guide Notes</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {paragraphs.map((para, i) => (
-              <div key={i} style={{ background: "#1a2332", borderRadius: 14, padding: "14px 16px", border: "1px solid #ffffff10", display: "flex", gap: 12, alignItems: "flex-start" }}>
-                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#c9a96e", marginTop: 6, flexShrink: 0 }} />
-                <div style={{ fontSize: 14, color: "#d0c0b0", lineHeight: 1.7 }}>{para}</div>
-              </div>
-            ))}
+          <div style={{ background: "#1a2332", borderRadius: 14, padding: "16px 18px", border: "1px solid #ffffff10" }}>
+            <div style={{ fontSize: 14, color: "#d0c0b0", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{notes}</div>
           </div>
         </div>
       ) : (

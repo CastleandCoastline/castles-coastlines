@@ -58,7 +58,14 @@ function parseTimeMins(timeStr) {
 
 async function geocodeLocation(location) {
   // Fetch more results and prioritise UK and Ireland
-  const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=10&language=en&format=json`);
+  const res = await fetch("https://pukdpnkgsyewvbswoqyo.supabase.co/functions/v1/weather", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1a2Rwbmtnc3lld3Zic3dvcXlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3NTkwNDQsImV4cCI6MjA5MjMzNTA0NH0.UskWETDFraGynpZ2oT039DYpxGu8EJrgUgFN0AQ3Q8o"
+    },
+    body: JSON.stringify({ geocode: location })
+  });
   const data = await res.json();
   if (!data.results?.length) return null;
 
@@ -71,7 +78,14 @@ async function geocodeLocation(location) {
 }
 
 async function fetchWeather(lat, lng) {
-  const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Europe%2FLondon&forecast_days=5`);
+  const res = await fetch("https://pukdpnkgsyewvbswoqyo.supabase.co/functions/v1/weather", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1a2Rwbmtnc3lld3Zic3dvcXlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3NTkwNDQsImV4cCI6MjA5MjMzNTA0NH0.UskWETDFraGynpZ2oT039DYpxGu8EJrgUgFN0AQ3Q8o"
+    },
+    body: JSON.stringify({ lat, lng })
+  });
   const data = await res.json();
   return data.daily;
 }
@@ -169,6 +183,33 @@ async function saveExcursion(tourId, excursion) {
 }
 
 async function deleteExcursion(id) { await supabase.from("excursions").delete().eq("id", id); }
+
+// ── Master Excursion Library ──
+async function loadMasterExcursions() {
+  const { data, error } = await supabase.from("master_excursions").select("*").order("title");
+  if (error) throw error;
+  return (data || []).map(m => ({
+    ...m,
+    url: m.image_path ? supabase.storage.from("excursion-photos").getPublicUrl(m.image_path).data.publicUrl : null
+  }));
+}
+async function saveMasterExcursion(m) {
+  const { data, error } = await supabase.from("master_excursions").upsert({
+    id: m.id || undefined, title: m.title, subtitle: m.subtitle || "",
+    description: m.description || "", price: parseFloat(m.price) || 0,
+    duration: m.duration || "", location: m.location || "", image_path: m.image_path || ""
+  }).select().single();
+  if (error) throw error;
+  return data;
+}
+async function deleteMasterExcursion(id) { await supabase.from("master_excursions").delete().eq("id", id); }
+async function uploadMasterExcursionPhoto(file, masterId) {
+  const ext = file.name.split(".").pop();
+  const path = `master-${masterId}-${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from("excursion-photos").upload(path, file, { contentType: file.type, upsert: true });
+  if (error) throw error;
+  return path;
+}
 
 async function loadBookings(tourId) {
   const { data, error } = await supabase.from("excursion_bookings").select("*").eq("tour_id", tourId).order("created_at");
@@ -2474,6 +2515,94 @@ const ExcursionManager = ({ tour, onClose, onRefresh, showStatus }) => {
   );
 };
 
+// ── Excursion Library (Manage Content) ───────────────────────────────────────
+const ExcursionLibrary = ({ onClose, showStatus }) => {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  const fetchItems = async () => { setLoading(true); try { setItems(await loadMasterExcursions()); } catch(e){ console.error(e);} setLoading(false); };
+  useEffect(() => { fetchItems(); }, []);
+
+  const handleSave = async (m, file) => {
+    setSaving(true);
+    try {
+      const saved = await saveMasterExcursion(m);
+      if (file) {
+        const imgPath = await uploadMasterExcursionPhoto(file, saved.id);
+        await saveMasterExcursion({ ...saved, image_path: imgPath });
+      }
+      await fetchItems(); setEditing(null); showStatus("✓ Saved to library");
+    } catch(e){ showStatus("❌ Save failed"); }
+    setSaving(false);
+  };
+  const handleDelete = async (id) => { if(!window.confirm("Delete this from your library? (Tours already using it are unaffected.)")) return; try { await deleteMasterExcursion(id); fetchItems(); showStatus("✓ Deleted"); } catch(e){ showStatus("❌ Failed"); } };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "#0d1520", zIndex: 2000, overflowY: "auto" }}>
+      <div style={{ maxWidth: 700, margin: "0 auto", padding: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, fontWeight: 700, color: "#f0e6d3" }}>Excursion Library</div>
+          <button onClick={onClose} style={{ background: "#1a2332", border: "1px solid #ffffff20", borderRadius: 10, padding: "8px 16px", color: "#8090a0", cursor: "pointer" }}>Done</button>
+        </div>
+        <div style={{ color: "#7080a0", fontSize: 13, marginBottom: 20 }}>Build your reusable excursions once, then add them to any tour.</div>
+
+        <button onClick={() => setEditing({ title:"", subtitle:"", description:"", price:"", duration:"", location:"", image_path:"" })}
+          style={{ width:"100%", padding:"12px", background:"linear-gradient(135deg,#c9a96e,#a07840)", border:"none", borderRadius:12, color:"#1a1a2e", fontWeight:700, fontSize:14, cursor:"pointer", marginBottom:20 }}>+ Add Excursion to Library</button>
+
+        {loading ? <div style={{ color:"#506070", textAlign:"center", padding:30 }}>Loading…</div>
+          : items.length === 0 ? <div style={{ textAlign:"center", padding:"30px 20px", color:"#405060", border:"1px dashed #ffffff15", borderRadius:16 }}>No saved excursions yet — add your first above.</div>
+          : <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+              {items.map(m => (
+                <div key={m.id} style={{ background:"#1a2332", borderRadius:14, border:"1px solid #ffffff10", overflow:"hidden", display:"flex" }}>
+                  {m.url && <img src={m.url} alt={m.title} style={{ width:90, height:90, objectFit:"cover", flexShrink:0 }} />}
+                  <div style={{ padding:"12px 14px", flex:1, minWidth:0 }}>
+                    <div style={{ fontWeight:700, color:"#f0e6d3", fontSize:15 }}>{m.title}</div>
+                    {m.subtitle && <div style={{ color:"#c9a96e", fontSize:12, marginBottom:2 }}>{m.subtitle}</div>}
+                    <div style={{ color:"#7080a0", fontSize:12 }}>£{m.price}{m.duration ? ` · ${m.duration}` : ""}{m.location ? ` · ${m.location}` : ""}</div>
+                    <div style={{ display:"flex", gap:8, marginTop:8 }}>
+                      <button onClick={() => setEditing(m)} style={{ padding:"5px 12px", background:"#0d1520", border:"1px solid #ffffff20", borderRadius:8, color:"#8090a0", fontSize:12, cursor:"pointer" }}>Edit</button>
+                      <button onClick={() => handleDelete(m.id)} style={{ padding:"5px 12px", background:"#ff444420", border:"1px solid #ff444440", borderRadius:8, color:"#ff6666", fontSize:12, cursor:"pointer" }}>Delete</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>}
+      </div>
+      {editing && <MasterExcursionEditor item={editing} onSave={handleSave} onClose={() => setEditing(null)} saving={saving} />}
+    </div>
+  );
+};
+
+const MasterExcursionEditor = ({ item, onSave, onClose, saving }) => {
+  const [m, setM] = useState({ title:"", subtitle:"", description:"", price:"", duration:"", location:"", image_path:"", ...item });
+  const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState(item?.url || null);
+  const fld = { width:"100%", background:"#0d1520", border:"1px solid #ffffff20", borderRadius:8, padding:"10px 12px", color:"#f0e6d3", fontSize:14, marginBottom:10, outline:"none", boxSizing:"border-box", fontFamily:"'Lato',sans-serif" };
+  return (
+    <div style={{ position:"fixed", inset:0, background:"#000000aa", zIndex:3000, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{ background:"#1a2332", borderRadius:16, padding:20, maxWidth:480, width:"100%", maxHeight:"90vh", overflowY:"auto" }}>
+        <div style={{ fontFamily:"'Playfair Display',serif", fontSize:20, color:"#f0e6d3", marginBottom:16 }}>{item?.id ? "Edit Excursion" : "New Excursion"}</div>
+        <input value={m.title} onChange={e=>setM({...m,title:e.target.value})} placeholder="Title" style={fld} />
+        <input value={m.subtitle} onChange={e=>setM({...m,subtitle:e.target.value})} placeholder="Subtitle (optional)" style={fld} />
+        <textarea value={m.description} onChange={e=>setM({...m,description:e.target.value})} placeholder="Description" style={{...fld, minHeight:90, resize:"vertical"}} />
+        <input value={m.price} onChange={e=>setM({...m,price:e.target.value})} placeholder="Price (£)" type="number" style={fld} />
+        <input value={m.duration} onChange={e=>setM({...m,duration:e.target.value})} placeholder="Duration (e.g. 3 hours)" style={fld} />
+        <input value={m.location} onChange={e=>setM({...m,location:e.target.value})} placeholder="Location / area" style={fld} />
+        <label style={{ display:"block", border:"1px dashed #ffffff20", borderRadius:10, padding:14, textAlign:"center", cursor:"pointer", marginBottom:14, color:"#c9a96e", fontSize:13 }}>
+          {preview ? <img src={preview} alt="preview" style={{ width:"100%", maxHeight:160, objectFit:"cover", borderRadius:8 }} /> : "📷 Add a photo"}
+          <input type="file" accept="image/*" style={{ display:"none" }} onChange={e=>{ const f=e.target.files[0]; if(f){ setFile(f); setPreview(URL.createObjectURL(f)); } }} />
+        </label>
+        <div style={{ display:"flex", gap:10 }}>
+          <button onClick={onClose} style={{ flex:1, padding:"12px", background:"#0d1520", border:"1px solid #ffffff20", borderRadius:12, color:"#8090a0", cursor:"pointer" }}>Cancel</button>
+          <button onClick={()=>{ if(!m.title.trim()){return;} onSave(m, file); }} disabled={saving} style={{ flex:2, padding:"12px", background:saving?"#806040":"linear-gradient(135deg,#c9a96e,#a07840)", border:"none", borderRadius:12, color:"#1a1a2e", fontWeight:700, cursor:saving?"default":"pointer" }}>{saving?"Saving…":"Save"}</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ── Guide Dashboard ───────────────────────────────────────────────────────────
 const GuideDashboard = ({ tours, onLogout, onRefresh, onViewTour }) => {
   const [activeTourId, setActiveTourId] = useState(tours[0]?.id || null);
@@ -2483,6 +2612,7 @@ const GuideDashboard = ({ tours, onLogout, onRefresh, onViewTour }) => {
   const [showSettings, setShowSettings] = useState(false);
   const [showSeating, setShowSeating] = useState(false);
   const [showExcursions, setShowExcursions] = useState(false);
+  const [showLibrary, setShowLibrary] = useState(false);
   const [saving, setSaving] = useState(false);
   const [announcementDraft, setAnnouncementDraft] = useState("");
   const [announcementSaved, setAnnouncementSaved] = useState(false);

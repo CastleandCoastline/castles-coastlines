@@ -2773,7 +2773,7 @@ const GuideDashboard = ({ tours, onLogout, onRefresh, onViewTour }) => {
           <button onClick={() => onViewTour(tour)} style={{ padding: "13px", background: "#1a2332", border: "1px solid #ffffff15", borderRadius: 12, color: "#8090a0", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>👁 Guest View</button>
           <button onClick={() => onViewTour(tour, "photos")} style={{ padding: "13px", background: "#1a2332", border: "1px solid #c9a96e40", borderRadius: 12, color: "#c9a96e", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>📸 Photos</button>
         </div>
-        <button onClick={() => window.open('/menu', '_blank')} style={{ width: "100%", padding: "13px", background: "#1a2332", border: "1px solid #c9a96e40", borderRadius: 12, color: "#c9a96e", fontWeight: 700, fontSize: 14, cursor: "pointer", marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        <button onClick={() => { window.location.href = '/menu'; }} style={{ width: "100%", padding: "13px", background: "#1a2332", border: "1px solid #c9a96e40", borderRadius: 12, color: "#c9a96e", fontWeight: 700, fontSize: 14, cursor: "pointer", marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
           <span>🍽️</span><span>Menu Orders</span>
         </button>
 

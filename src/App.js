@@ -1278,7 +1278,7 @@ const ExcursionDayInline = ({ tour, dayLocation, guestName, dayIdx }) => {
             </div>
             {error && <div style={{ color: "#ff6666", fontSize: 13, marginBottom: 12, textAlign: "center" }}>{error}</div>}
             <button onClick={handleBook} disabled={submitting}
-              style={{ width: "100%", padding: "14px", background: submitting ? "#806040" : "linear-gradient(135deg,#c9a96e,#a07840)", borderRadius: 12, border: "none", color: "#1a1a2e", fontWeight: 700, fontSize: 15, cursor: submitting ? "default" : "pointer" }}>
+              style={{ width: "100%", padding: "14px", marginBottom: "max(env(safe-area-inset-bottom, 16px), 16px)", background: submitting ? "#806040" : "linear-gradient(135deg,#c9a96e,#a07840)", borderRadius: 12, border: "none", color: "#1a1a2e", fontWeight: 700, fontSize: 15, cursor: submitting ? "default" : "pointer" }}>
               {submitting ? "Booking…" : `Confirm Booking — £${numPeople * booking.price}`}
             </button>
           </div>
@@ -1295,6 +1295,7 @@ const ExcursionsPage = ({ tour, guestName }) => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState(null); // excursion being booked
+  const [photoView, setPhotoView] = useState(null); // excursion photo being viewed full-screen
   const [guestNames, setGuestNames] = useState("");
   const [numPeople, setNumPeople] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState("Credit Card");
@@ -1367,7 +1368,7 @@ const ExcursionsPage = ({ tour, guestName }) => {
         const photoUrl = exc.image_path ? supabase.storage.from("excursion-photos").getPublicUrl(exc.image_path).data.publicUrl : null;
         return (
           <div key={exc.id} style={{ margin: "0 14px 14px", background: "#1a2332", borderRadius: 16, border: `1px solid ${booked ? "#c9a96e40" : "#ffffff10"}`, overflow: "hidden" }}>
-            {photoUrl && <img src={photoUrl} alt={exc.title} style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }} />}
+            {photoUrl && <img src={photoUrl} alt={exc.title} onClick={() => setPhotoView(photoUrl)} style={{ width: "100%", height: 160, objectFit: "cover", display: "block", cursor: "pointer" }} />}
             <div style={{ padding: "14px 16px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
                 <div style={{ flex: 1, marginRight: 10 }}>
@@ -1431,6 +1432,14 @@ const ExcursionsPage = ({ tour, guestName }) => {
         </div>
       )}
 
+      {/* Excursion photo full-screen viewer */}
+      {photoView && (
+        <div onClick={() => setPhotoView(null)} style={{ position: "fixed", inset: 0, background: "#000000ee", zIndex: 4000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <img src={photoView} alt="Excursion" style={{ maxWidth: "100%", maxHeight: "85vh", borderRadius: 12, objectFit: "contain" }} />
+          <button onClick={() => setPhotoView(null)} style={{ position: "absolute", top: "max(env(safe-area-inset-top, 20px), 20px)", right: 20, background: "#1a2332cc", border: "1px solid #ffffff30", borderRadius: 20, width: 40, height: 40, color: "#f0e6d3", fontSize: 22, cursor: "pointer" }}>×</button>
+        </div>
+      )}
+
       {/* Booking modal */}
       {booking && (
         <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 3000, display: "flex", alignItems: "flex-end", padding: "0" }}>
@@ -1474,7 +1483,7 @@ const ExcursionsPage = ({ tour, guestName }) => {
             {error && <div style={{ color: "#ff6666", fontSize: 13, marginBottom: 12, textAlign: "center" }}>{error}</div>}
 
             <button onClick={handleSubmitBooking} disabled={submitting}
-              style={{ width: "100%", padding: "14px", background: submitting ? "#806040" : "linear-gradient(135deg,#c9a96e,#a07840)", borderRadius: 12, border: "none", color: "#1a1a2e", fontWeight: 700, fontSize: 15, cursor: submitting ? "default" : "pointer" }}>
+              style={{ width: "100%", padding: "14px", marginBottom: "max(env(safe-area-inset-bottom, 16px), 16px)", background: submitting ? "#806040" : "linear-gradient(135deg,#c9a96e,#a07840)", borderRadius: 12, border: "none", color: "#1a1a2e", fontWeight: 700, fontSize: 15, cursor: submitting ? "default" : "pointer" }}>
               {submitting ? "Booking…" : `Confirm Booking — £${numPeople * booking.price}`}
             </button>
           </div>
@@ -2924,6 +2933,12 @@ export default function App() {
       const theme = document.createElement("meta"); theme.name = "theme-color"; theme.content = "#0d1520"; document.head.appendChild(theme);
     }
     fetchTours();
+    // Poll for fresh tour data (announcements, schedule) every 30s while app is open
+    const tourPoll = setInterval(() => { fetchTours(); }, 30000);
+    // Refresh immediately when app returns to foreground
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchTours(); };
+    document.addEventListener('visibilitychange', onVisible);
+    window._ccCleanup = () => { clearInterval(tourPoll); document.removeEventListener('visibilitychange', onVisible); };
     // Prevent zoom on input focus
     const viewportMeta = document.querySelector('meta[name="viewport"]');
     if (viewportMeta) viewportMeta.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no';
@@ -2948,17 +2963,20 @@ export default function App() {
         .then(() => console.log('Service worker registered'))
         .catch((e) => console.log('SW registration failed:', e));
     }
+    return () => { if (window._ccCleanup) window._ccCleanup(); };
   }, []);
 
   const liveTour = guestTourId ? tours.find((t) => t.id === guestTourId) : null;
   const handleViewTour = (tour, page = "itinerary") => { setGuestTourId(tour.id); setGuestStartPage(page); setIsGuide(true); setView("guest"); };
 
-  const tagGuestDevice = async (tourId) => {
+  const tagGuestDevice = async (tourId, attempt = 0) => {
     try {
       const _osMod = await import('@onesignal/capacitor-plugin'); const OneSignal = _osMod.OneSignal || _osMod.default;
       await OneSignal.User.addTag("tour_id", tourId);
       console.log("Tagged device with tour_id:", tourId);
     } catch(e) {
+      // OneSignal may not be ready yet — retry up to 5 times over ~10s
+      if (attempt < 5) { setTimeout(() => tagGuestDevice(tourId, attempt + 1), 2000); return; }
       console.log("Could not tag device:", e);
     }
   };

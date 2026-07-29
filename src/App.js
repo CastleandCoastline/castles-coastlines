@@ -151,6 +151,56 @@ async function saveSeats(tourId, rows, cols, seatData) {
 async function deleteDayFromDB(dayId) { await supabase.from("days").delete().eq("id", dayId); }
 async function deleteTourFromDB(tourId) { await supabase.from("tours").delete().eq("id", tourId); }
 
+async function duplicateTour(sourceTour, newName, newPassword, newStartDate) {
+  // 1. Create the new tour with a fresh id, copying itinerary-level fields but NOT guest data
+  const newTourId = (newName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")) + "-" + Date.now();
+  const { error: tourErr } = await supabase.from("tours").insert({
+    id: newTourId, name: newName, duration: sourceTour.duration, description: sourceTour.description || "",
+    password: newPassword, announcement: "", notes: sourceTour.notes || "",
+    guide_name: sourceTour.guide_name || "", guide_phone: sourceTour.guide_phone || "",
+    guide_email: sourceTour.guide_email || "",
+    coach_rows: sourceTour.coach_rows || 10, coach_cols: sourceTour.coach_cols || 4,
+    start_date: newStartDate || "", current_day_override: null,
+  });
+  if (tourErr) throw tourErr;
+
+  // 2. Copy each day, and its schedule_items + attractions
+  const { data: srcDays } = await supabase.from("days").select("*").eq("tour_id", sourceTour.id).order("day_number");
+  for (const d of (srcDays || [])) {
+    const { data: newDay, error: dErr } = await supabase.from("days").insert({
+      tour_id: newTourId, day_number: d.day_number, title: d.title, location: d.location,
+    }).select().single();
+    if (dErr) throw dErr;
+    // schedule items
+    const { data: sched } = await supabase.from("schedule_items").select("*").eq("day_id", d.id).order("sort_order");
+    if (sched && sched.length) {
+      await supabase.from("schedule_items").insert(sched.map(s => ({
+        day_id: newDay.id, time: s.time, label: s.label, note: s.note, sort_order: s.sort_order,
+      })));
+    }
+    // attractions
+    const { data: attr } = await supabase.from("attractions").select("*").eq("day_id", d.id).order("sort_order");
+    if (attr && attr.length) {
+      await supabase.from("attractions").insert(attr.map(a => ({
+        day_id: newDay.id, name: a.name, description: a.description, latitude: a.latitude, longitude: a.longitude, sort_order: a.sort_order,
+      })));
+    }
+  }
+
+  // 3. Copy excursions (itinerary content), but clear tour-specific dates/deadlines so you set them fresh
+  const { data: srcExc } = await supabase.from("excursions").select("*").eq("tour_id", sourceTour.id).order("sort_order");
+  for (const e of (srcExc || [])) {
+    await supabase.from("excursions").insert({
+      tour_id: newTourId, title: e.title, subtitle: e.subtitle || "", description: e.description || "",
+      price: e.price || 0, date: "", location: e.location || "", deadline: "",
+      image_path: e.image_path || "", sort_order: e.sort_order || 0,
+    });
+  }
+
+  // NOTE: photos, excursion_bookings, and announcements are intentionally NOT copied — new group starts clean.
+  return newTourId;
+}
+
 function isDeadlinePassed(deadline) {
   if (!deadline) return false;
   // Parse deadline like "17 May" or "17 May 2025"
@@ -2647,11 +2697,52 @@ const MasterExcursionEditor = ({ item, onSave, onClose, saving }) => {
   );
 };
 
+// ── Duplicate Tour Modal ─────────────────────────────────────────────────────
+const DuplicateTourModal = ({ tour, onSave, onClose, saving }) => {
+  const [note, setNote] = useState("");
+  const [password, setPassword] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [error, setError] = useState("");
+  const fld = { width: "100%", background: "#0d1520", border: "1px solid #ffffff20", borderRadius: 8, padding: "11px 13px", color: "#f0e6d3", fontSize: 14, marginBottom: 4, outline: "none", boxSizing: "border-box", fontFamily: "'Lato',sans-serif" };
+  const finalName = note.trim() ? `${tour.name} — ${note.trim()}` : tour.name;
+  const submit = () => {
+    if (!password.trim()) { setError("Please set a login code for the new group"); return; }
+    if (!startDate) { setError("Please set a start date"); return; }
+    onSave({ name: finalName, password: password.trim().toUpperCase(), startDate });
+  };
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#1a2332", borderRadius: 16, padding: 24, maxWidth: 440, width: "100%", maxHeight: "90vh", overflowY: "auto", border: "1px solid #c9a96e30" }}>
+        <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, color: "#f0e6d3", marginBottom: 6 }}>Duplicate Tour</div>
+        <div style={{ color: "#7080a0", fontSize: 13, marginBottom: 18 }}>Creates a fresh, separate tour with the same itinerary — its own photos, bookings and announcements. Guest data isn't copied over.</div>
+
+        <label style={{ fontSize: 11, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Label for this group <span style={{ color: "#506070", textTransform: "none", letterSpacing: 0 }}>(optional)</span></label>
+        <input value={note} onChange={e => { setNote(e.target.value); setError(""); }} placeholder="e.g. September group, or a date" style={fld} />
+        <div style={{ fontSize: 12, color: "#607080", marginBottom: 16 }}>Will appear as: <span style={{ color: "#c9a96e" }}>{finalName}</span></div>
+
+        <label style={{ fontSize: 11, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", display: "block", marginBottom: 6 }}>New login code</label>
+        <input value={password} onChange={e => { setPassword(e.target.value); setError(""); }} placeholder="Code the new group will use to log in" style={{ ...fld, marginBottom: 16 }} />
+
+        <label style={{ fontSize: 11, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Start date</label>
+        <input type="date" value={startDate} onChange={e => { setStartDate(e.target.value); setError(""); }} style={{ ...fld, marginBottom: 16 }} />
+
+        {error && <div style={{ color: "#ff6666", fontSize: 13, marginBottom: 12 }}>{error}</div>}
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: "12px", background: "#0d1520", border: "1px solid #ffffff20", borderRadius: 12, color: "#8090a0", cursor: "pointer" }}>Cancel</button>
+          <button onClick={submit} disabled={saving} style={{ flex: 2, padding: "12px", background: saving ? "#806040" : "linear-gradient(135deg,#c9a96e,#a07840)", border: "none", borderRadius: 12, color: "#1a1a2e", fontWeight: 700, cursor: saving ? "default" : "pointer" }}>{saving ? "Duplicating…" : "Create duplicate"}</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ── Guide Dashboard ───────────────────────────────────────────────────────────
 const GuideDashboard = ({ tours, onLogout, onRefresh, onViewTour }) => {
   const [activeTourId, setActiveTourId] = useState(tours[0]?.id || null);
   const [editingDay, setEditingDay] = useState(null);
   const [showAddTour, setShowAddTour] = useState(false);
+  const [showDuplicate, setShowDuplicate] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showSeating, setShowSeating] = useState(false);
@@ -2675,6 +2766,7 @@ const GuideDashboard = ({ tours, onLogout, onRefresh, onViewTour }) => {
   const addDay = () => { const n = tour.days.length > 0 ? Math.max(...tour.days.map((d) => d.day)) + 1 : 1; setEditingDay({ day: n, title: `Day ${n}`, location: "", schedule: [], attractions: [] }); };
   const deleteDay = async (day) => { if (!window.confirm(`Delete Day ${day.day}?`)) return; setSaving(true); try { if (day.id) await deleteDayFromDB(day.id); await onRefresh(); showStatus("✓ Day deleted"); } catch (e) { showStatus("❌ Delete failed"); } setSaving(false); };
   const addTour = async (t) => { setSaving(true); try { await saveTourToDB(t); await onRefresh(); setActiveTourId(t.id); setShowAddTour(false); showStatus("✓ Tour created"); } catch (e) { showStatus("❌ Failed"); } setSaving(false); };
+  const handleDuplicate = async ({ name, password, startDate }) => { setSaving(true); try { const newId = await duplicateTour(tour, name, password, startDate); await onRefresh(); setActiveTourId(newId); setShowDuplicate(false); showStatus("✓ Tour duplicated"); } catch (e) { console.error(e); showStatus("❌ Duplicate failed"); } setSaving(false); };
   const saveSettings = async (settings) => { setSaving(true); try { await supabase.from("tours").update({ notes: settings.notes, guide_name: settings.guide_name, guide_phone: settings.guide_phone, guide_email: settings.guide_email, start_date: settings.start_date, current_day_override: null }).eq("id", tour.id); await onRefresh(); setShowSettings(false); showStatus("✓ Saved"); } catch (e) { showStatus("❌ Failed"); } setSaving(false); };
   const saveSeating = async (rows, cols, seatData) => { setSaving(true); try { await supabase.from("tours").update({ coach_rows: rows, coach_cols: cols }).eq("id", tour.id); await saveSeats(tour.id, rows, cols, seatData); await onRefresh(); setShowSeating(false); showStatus("✓ Seating plan saved"); } catch (e) { showStatus("❌ Failed to save seating"); } setSaving(false); };
   const saveAnnouncement = async () => {
@@ -2720,6 +2812,7 @@ const GuideDashboard = ({ tours, onLogout, onRefresh, onViewTour }) => {
         <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 16 }}>
           {tours.map((t) => (<button key={t.id} onClick={() => setActiveTourId(t.id)} style={{ flexShrink: 0, padding: "8px 16px", borderRadius: 20, border: `1px solid ${activeTourId === t.id ? "#c9a96e" : "#ffffff20"}`, background: activeTourId === t.id ? "#c9a96e15" : "transparent", color: activeTourId === t.id ? "#c9a96e" : "#7080a0", fontWeight: activeTourId === t.id ? 600 : 400, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>{t.name}</button>))}
           <button onClick={() => setShowAddTour(true)} style={{ flexShrink: 0, padding: "8px 16px", borderRadius: 20, border: "1px dashed #c9a96e50", background: "transparent", color: "#c9a96e", fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>+ New Tour</button>
+          {tour && <button onClick={() => setShowDuplicate(true)} style={{ flexShrink: 0, padding: "8px 16px", borderRadius: 20, border: "1px solid #c9a96e40", background: "#c9a96e15", color: "#c9a96e", fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>⧉ Duplicate</button>}
         </div>
       </div>
       <div style={{ padding: "20px 24px" }}>
@@ -2846,6 +2939,7 @@ const GuideDashboard = ({ tours, onLogout, onRefresh, onViewTour }) => {
       {showSeating && <SeatingEditor tour={tour} onSave={saveSeating} onClose={() => setShowSeating(false)} saving={saving} />}
       {showExcursions && <ExcursionManager tour={tour} onClose={() => setShowExcursions(false)} onRefresh={onRefresh} showStatus={showStatus} />}
       {showLibrary && <ExcursionLibrary onClose={() => setShowLibrary(false)} showStatus={showStatus} />}
+      {showDuplicate && tour && <DuplicateTourModal tour={tour} onSave={handleDuplicate} onClose={() => setShowDuplicate(false)} saving={saving} />}
     </div>
   );
 };

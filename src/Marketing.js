@@ -1,14 +1,22 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Castle &amp; Coastline — Storytelling Tours of Britain &amp; Ireland</title>
-<meta name="description" content="Storytelling tours of Britain and Ireland from a local guide's point of view. Group touring across the UK and Ireland, and private day trips from London." />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Spectral:ital,wght@0,400;0,500;1,400&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
-<style>
+import React, { useEffect } from 'react';
+
+export default function Marketing() {
+  useEffect(() => {
+    // Topbar solidifies on scroll
+    const topbar = document.getElementById('topbar');
+    const onScroll = () => { if (topbar) topbar.classList.toggle('solid', window.scrollY > 40); };
+    window.addEventListener('scroll', onScroll);
+    // Reveal on scroll
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { threshold: 0.15 });
+    document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+    return () => { window.removeEventListener('scroll', onScroll); io.disconnect(); };
+  }, []);
+
+  return (
+    <>
+      <style>{`
   :root {
     --navy: #0d1520;
     --navy-soft: #17222f;
@@ -229,11 +237,8 @@
     .reveal { opacity: 1; transform: none; }
     .hero-eyebrow, .hero h1 .word, .hero-sub, .hero-cta, .scroll-hint { opacity: 1; animation: none; }
   }
-</style>
-</head>
-<body>
-
-<div class="topbar" id="topbar">
+`}</style>
+      <div dangerouslySetInnerHTML={{ __html: `<div class="topbar" id="topbar">
   <a href="#top" class="brand-mark">Castle <span class="amp">&amp;</span> Coastline</a>
   <a href="https://apps.apple.com/app/id6775566097" target="_blank" rel="noopener" class="app-link">Download the app →</a>
 </div>
@@ -375,20 +380,7 @@
     <div class="foot-brand">Castle <span class="amp">&amp;</span> Coastline</div>
     <div class="foot-note">Storytelling tours of Britain &amp; Ireland &nbsp;·&nbsp; <a href="https://apps.apple.com/app/id6775566097" target="_blank" rel="noopener">Download the app</a> &nbsp;·&nbsp; <a href="/privacy">Privacy</a></div>
   </div>
-</footer>
-
-<script>
-  // Topbar solidifies on scroll
-  const topbar = document.getElementById('topbar');
-  window.addEventListener('scroll', () => {
-    topbar.classList.toggle('solid', window.scrollY > 40);
-  });
-  // Reveal on scroll
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
-  }, { threshold: 0.15 });
-  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
-</script>
-
-</body>
-</html>
+</footer>` }} />
+    </>
+  );
+}

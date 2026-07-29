@@ -37,6 +37,8 @@ self.addEventListener('fetch', (event) => {
   if (url.hostname.includes('exchangerate-api.com')) return;
   if (url.hostname.includes('frankfurter.app')) return;
   if (url.hostname.includes('googleapis.com')) return;
+  // Never intercept the marketing page or root — let the server/rewrite handle them
+  if (url.pathname === '/' || url.pathname === '/marketing.html') return;
 
   // Navigation (HTML shell): ALWAYS network-first, never serve stale shell unless truly offline
   if (request.mode === 'navigate') {

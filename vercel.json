@@ -61,6 +61,10 @@
   ],
   "rewrites": [
     {
+      "source": "/",
+      "destination": "/marketing.html"
+    },
+    {
       "source": "/menu",
       "destination": "/index.html"
     },
@@ -69,7 +73,15 @@
       "destination": "/index.html"
     },
     {
-      "source": "/(.*)",
+      "source": "/privacy",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/app",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/app/(.*)",
       "destination": "/index.html"
     }
   ]

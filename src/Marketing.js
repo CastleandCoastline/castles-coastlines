@@ -65,13 +65,13 @@ export default function Marketing() {
   }
   .app-link:hover { background: var(--gold-bright); transform: translateY(-1px); }
   .topbar-links { display: flex; align-items: center; gap: 18px; }
-  .topbar-guest { font-family: 'Work Sans', sans-serif; font-size: 13px; color: var(--cream-dim); text-decoration: none; transition: color 0.2s; white-space: nowrap; }
-  .topbar-guest:hover { color: var(--gold); }
+  .topbar-guest { font-family: 'Work Sans', sans-serif; font-size: 13px; font-weight: 500; color: var(--gold); text-decoration: none; transition: all 0.2s; white-space: nowrap; border: 1px solid var(--gold); border-radius: 30px; padding: 8px 16px; }
+  .topbar-guest:hover { background: var(--gold); color: var(--navy); }
 
   /* ── Hero ── */
   .hero {
     min-height: 100vh; display: flex; flex-direction: column; justify-content: center;
-    position: relative; padding: 120px 0 80px;
+    position: relative; padding: 120px 0 140px;
     background:
       radial-gradient(1200px 600px at 75% 15%, rgba(74,107,124,0.18), transparent 60%),
       radial-gradient(900px 500px at 15% 85%, rgba(201,169,110,0.10), transparent 55%),
@@ -107,11 +107,12 @@ export default function Marketing() {
   .btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
 
   .scroll-hint {
-    position: absolute; bottom: 34px; left: 50%; transform: translateX(-50%);
+    position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
     font-family: 'Work Sans', sans-serif; font-size: 11px; letter-spacing: 2px;
     text-transform: uppercase; color: var(--cream-dim); opacity: 0;
     animation: fadein 1s 1.4s forwards; display: flex; flex-direction: column; align-items: center; gap: 8px;
   }
+  @media (max-height: 780px) { .scroll-hint { display: none; } }
   .scroll-hint .rule { width: 1px; height: 34px; background: linear-gradient(var(--gold), transparent); }
 
   @keyframes rise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }

@@ -112,7 +112,6 @@ export default function Marketing() {
     text-transform: uppercase; color: var(--cream-dim); opacity: 0;
     animation: fadein 1s 1.4s forwards; display: flex; flex-direction: column; align-items: center; gap: 8px;
   }
-  @media (max-height: 780px) { .scroll-hint { display: none; } }
   .scroll-hint .rule { width: 1px; height: 34px; background: linear-gradient(var(--gold), transparent); }
 
   @keyframes rise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }

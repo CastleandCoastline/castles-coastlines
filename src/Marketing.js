@@ -2,11 +2,9 @@ import React, { useEffect } from 'react';
 
 export default function Marketing() {
   useEffect(() => {
-    // Topbar solidifies on scroll
     const topbar = document.getElementById('topbar');
     const onScroll = () => { if (topbar) topbar.classList.toggle('solid', window.scrollY > 40); };
     window.addEventListener('scroll', onScroll);
-    // Reveal on scroll
     const io = new IntersectionObserver((entries) => {
       entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
     }, { threshold: 0.15 });
@@ -66,6 +64,9 @@ export default function Marketing() {
     white-space: nowrap;
   }
   .app-link:hover { background: var(--gold-bright); transform: translateY(-1px); }
+  .topbar-links { display: flex; align-items: center; gap: 18px; }
+  .topbar-guest { font-family: 'Work Sans', sans-serif; font-size: 13px; color: var(--cream-dim); text-decoration: none; transition: color 0.2s; white-space: nowrap; }
+  .topbar-guest:hover { color: var(--gold); }
 
   /* ── Hero ── */
   .hero {
@@ -170,6 +171,15 @@ export default function Marketing() {
     font-family: 'Work Sans', sans-serif; font-size: 12px; color: var(--cream-dim);
     background: var(--card); border: 1px solid var(--line); border-radius: 4px; padding: 5px 11px;
   }
+  .idea-grid { margin-top: 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .idea {
+    background: var(--card); border: 1px solid var(--line); border-radius: 8px;
+    padding: 15px 16px; transition: border-color 0.25s, transform 0.25s;
+  }
+  .idea:hover { border-color: var(--gold); transform: translateY(-2px); }
+  .idea-name { font-family: 'Fraunces', serif; font-size: 1.05rem; color: var(--cream); margin-bottom: 5px; }
+  .idea-tag { font-size: 0.92rem; color: var(--cream-dim); line-height: 1.5; }
+  @media (max-width: 640px) { .idea-grid { grid-template-columns: 1fr; } }
 
   /* ── App section ── */
   .app-section { text-align: center; }
@@ -186,6 +196,9 @@ export default function Marketing() {
   .appstore-badge:hover { transform: translateY(-2px); background: #fff; }
   .appstore-badge span { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.1; font-family: 'Work Sans', sans-serif; font-weight: 600; font-size: 19px; }
   .appstore-badge span small { font-size: 10px; font-weight: 400; letter-spacing: 0.5px; text-transform: uppercase; }
+  .already-tour { margin-top: 22px; font-family: 'Spectral', serif; font-size: 1rem; color: var(--cream-dim); }
+  .already-tour a { color: var(--gold); text-decoration: none; border-bottom: 1px solid var(--line); padding-bottom: 1px; transition: color 0.2s, border-color 0.2s; }
+  .already-tour a:hover { color: var(--gold-bright); border-color: var(--gold-bright); }
 
   /* ── Contact ── */
   .contact { background: var(--navy-soft); border-top: 1px solid var(--line); }
@@ -231,6 +244,8 @@ export default function Marketing() {
     .tour-tag { grid-column: 2; justify-self: start; margin-top: 10px; }
     section { padding: 72px 0; }
     .app-link { padding: 8px 14px; font-size: 12px; }
+    .topbar-links { gap: 12px; }
+    .topbar-guest { font-size: 12px; }
   }
   @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
@@ -240,7 +255,10 @@ export default function Marketing() {
 `}</style>
       <div dangerouslySetInnerHTML={{ __html: `<div class="topbar" id="topbar">
   <a href="#top" class="brand-mark">Castle <span class="amp">&amp;</span> Coastline</a>
-  <a href="https://apps.apple.com/app/id6775566097" target="_blank" rel="noopener" class="app-link">Download the app →</a>
+  <div class="topbar-links">
+    <a href="/app" class="topbar-guest">Guest login</a>
+    <a href="https://apps.apple.com/app/id6775566097" target="_blank" rel="noopener" class="app-link">Download the app →</a>
+  </div>
 </div>
 
 <!-- ── HERO ── -->
@@ -310,12 +328,17 @@ export default function Marketing() {
         <div class="tour-num">02</div>
         <div>
           <div class="tour-name">Private day trips from London</div>
-          <div class="tour-desc">Smaller, personal day tours to some of England's most storied places — designed around you, at your pace, with the tales told the way only a local guide can.</div>
-          <div class="places">
-            <span class="place-chip">Stratford-upon-Avon</span>
-            <span class="place-chip">Oxford</span>
-            <span class="place-chip">Stonehenge</span>
-            <span class="place-chip">The Cotswolds</span>
+          <div class="tour-desc">Smaller, personal day tours to some of England's most storied places — designed around you, at your pace, with the tales told the way only a local guide can. The ideas below are just starting points: mix, match, or suggest your own, and we'll build the perfect day.</div>
+          <div class="idea-grid">
+            <div class="idea"><div class="idea-name">Stonehenge &amp; Bath</div><div class="idea-tag">Two World Heritage sites in a day — prehistoric mystery and Georgian elegance.</div></div>
+            <div class="idea"><div class="idea-name">Oxford &amp; Stratford-upon-Avon</div><div class="idea-tag">Dreaming spires and Shakespeare's birthplace — England's literary heart.</div></div>
+            <div class="idea"><div class="idea-name">South East England</div><div class="idea-tag">Hastings, 1066, and the coast where English history turned.</div></div>
+            <div class="idea"><div class="idea-name">The Cotswolds</div><div class="idea-tag">Honey-stone villages and rolling hills, at a storyteller's pace.</div></div>
+            <div class="idea"><div class="idea-name">Windsor Castle</div><div class="idea-tag">A thousand years of royal history at the oldest occupied castle on earth.</div></div>
+            <div class="idea"><div class="idea-name">Kent Castles</div><div class="idea-tag">Fairytale Leeds Castle and Dover's wartime secret tunnels.</div></div>
+            <div class="idea"><div class="idea-name">Blenheim Palace</div><div class="idea-tag">Churchill's birthplace and one of England's grandest houses.</div></div>
+            <div class="idea"><div class="idea-name">Cambridge</div><div class="idea-tag">Centuries of learning, punting on the Cam, and stories in every college.</div></div>
+            <div class="idea"><div class="idea-name">Highclere Castle</div><div class="idea-tag">The real Downton Abbey — a grand estate with stories above and below stairs.</div></div>
           </div>
         </div>
         <div class="tour-tag">Private</div>
@@ -335,6 +358,9 @@ export default function Marketing() {
         <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" aria-hidden="true"><path d="M17.05 12.04c-.03-2.82 2.3-4.17 2.4-4.24-1.31-1.92-3.35-2.18-4.07-2.21-1.73-.17-3.38 1.02-4.26 1.02-.88 0-2.23-1-3.67-.97-1.89.03-3.63 1.1-4.6 2.79-1.96 3.4-.5 8.43 1.4 11.19.93 1.35 2.04 2.87 3.49 2.81 1.4-.06 1.93-.9 3.62-.9 1.69 0 2.17.9 3.65.87 1.51-.03 2.46-1.38 3.38-2.74 1.07-1.57 1.51-3.09 1.53-3.17-.03-.01-2.94-1.13-2.97-4.47zM14.28 3.95c.77-.94 1.29-2.24 1.15-3.54-1.11.045-2.46.74-3.26 1.68-.72.83-1.35 2.16-1.18 3.43 1.24.096 2.51-.63 3.29-1.57z"/></svg>
         <span><small>Download on the</small>App Store</span>
       </a>
+      <div class="already-tour">
+        Already on a tour? <a href="/app">Open the app here →</a>
+      </div>
     </div>
   </div>
 </section>

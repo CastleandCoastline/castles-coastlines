@@ -40,9 +40,20 @@ export default function Marketing() {
 
   .wrap { max-width: 1080px; margin: 0 auto; padding: 0 28px; }
 
+  /* ── Guest banner (top of page) ── */
+  .guest-banner {
+    display: block; text-align: center; text-decoration: none;
+    background: var(--gold); color: var(--navy);
+    font-family: 'Work Sans', sans-serif; font-size: 14px; font-weight: 500;
+    padding: 11px 16px; letter-spacing: 0.2px; position: relative; z-index: 60;
+    transition: background 0.2s;
+  }
+  .guest-banner:hover { background: var(--gold-bright); }
+  .guest-banner strong { font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+
   /* ── Top bar ── */
   .topbar {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    position: sticky; top: 0; left: 0; right: 0; z-index: 50;
     display: flex; align-items: center; justify-content: space-between;
     padding: 18px 28px;
     background: linear-gradient(180deg, rgba(13,21,32,0.95), rgba(13,21,32,0));
@@ -64,14 +75,11 @@ export default function Marketing() {
     white-space: nowrap;
   }
   .app-link:hover { background: var(--gold-bright); transform: translateY(-1px); }
-  .topbar-links { display: flex; align-items: center; gap: 18px; }
-  .topbar-guest { font-family: 'Work Sans', sans-serif; font-size: 13px; font-weight: 500; color: var(--gold); text-decoration: none; transition: all 0.2s; white-space: nowrap; border: 1px solid var(--gold); border-radius: 30px; padding: 8px 16px; }
-  .topbar-guest:hover { background: var(--gold); color: var(--navy); }
 
   /* ── Hero ── */
   .hero {
-    min-height: 100vh; display: flex; flex-direction: column; justify-content: center;
-    position: relative; padding: 120px 0 140px;
+    min-height: 90vh; display: flex; flex-direction: column; justify-content: center;
+    position: relative; padding: 60px 0 140px;
     background:
       radial-gradient(1200px 600px at 75% 15%, rgba(74,107,124,0.18), transparent 60%),
       radial-gradient(900px 500px at 15% 85%, rgba(201,169,110,0.10), transparent 55%),
@@ -244,8 +252,6 @@ export default function Marketing() {
     .tour-tag { grid-column: 2; justify-self: start; margin-top: 10px; }
     section { padding: 72px 0; }
     .app-link { padding: 8px 14px; font-size: 12px; }
-    .topbar-links { gap: 12px; }
-    .topbar-guest { font-size: 12px; }
   }
   @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
@@ -253,12 +259,11 @@ export default function Marketing() {
     .hero-eyebrow, .hero h1 .word, .hero-sub, .hero-cta, .scroll-hint { opacity: 1; animation: none; }
   }
 `}</style>
-      <div dangerouslySetInnerHTML={{ __html: `<div class="topbar" id="topbar">
+      <div dangerouslySetInnerHTML={{ __html: `<a href="/app" class="guest-banner">🎫 Already on a tour? <strong>Open your app here →</strong></a>
+
+<div class="topbar" id="topbar">
   <a href="#top" class="brand-mark">Castle <span class="amp">&amp;</span> Coastline</a>
-  <div class="topbar-links">
-    <a href="/app" class="topbar-guest">Guest login</a>
-    <a href="https://apps.apple.com/app/id6775566097" target="_blank" rel="noopener" class="app-link">Download the app →</a>
-  </div>
+  <a href="https://apps.apple.com/app/id6775566097" target="_blank" rel="noopener" class="app-link">Download the app →</a>
 </div>
 
 <!-- ── HERO ── -->

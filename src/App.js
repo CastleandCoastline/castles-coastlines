@@ -1198,27 +1198,36 @@ const ExcursionDayInline = ({ tour, dayLocation, guestName, dayIdx }) => {
       const [exc, book] = await Promise.all([loadExcursions(tour.id), loadBookings(tour.id)]);
       // Match by tour_day override first, then by calendar date, then by location
       const tourStartDate = tour.start_date ? new Date(tour.start_date) : null;
+      const parseExcDate = (str, startDate) => {
+        if (!str) return null;
+        const m = String(str).match(/(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](\d{2,4}))?/);
+        if (!m) return null;
+        const day = parseInt(m[1], 10);
+        const month = parseInt(m[2], 10) - 1;
+        let year = m[3] ? parseInt(m[3], 10) : startDate.getFullYear();
+        if (year < 100) year += 2000;
+        const d = new Date(year, month, day);
+        return isNaN(d) ? null : d;
+      };
+      const startMidnight = tourStartDate
+        ? new Date(tourStartDate.getFullYear(), tourStartDate.getMonth(), tourStartDate.getDate())
+        : null;
+
       const relevant = exc.filter(e => {
-        // Manual day override on excursion — match ONLY the specified tour day
+        // 1) PRIMARY: match by the excursion's own date against the tour calendar
+        if (e.date && startMidnight) {
+          const excCal = parseExcDate(e.date, startMidnight);
+          if (excCal) {
+            const tourDay = Math.round((excCal - startMidnight) / 86400000);
+            return tourDay === dayIdx;
+          }
+        }
+        // 2) BACKUP: manual day override (tour_day is 1-based; dayIdx is 0-based)
         if (e.tour_day) {
           return dayIdx !== undefined && e.tour_day === dayIdx + 1;
         }
-        // Match by excursion date string vs tour calendar date
-        if (e.date && tourStartDate) {
-          try {
-            const excCal = new Date(`${e.date} ${new Date().getFullYear()}`);
-            if (!isNaN(excCal)) {
-              // Find which day of tour this date falls on
-              const tourDay = Math.round((excCal - tourStartDate) / 86400000);
-              return tourDay === dayIdx;
-            }
-          } catch(err) {}
-        }
-        // Fallback: location matching
-        if (!e.location || !dayLocation) return false;
-        const excLoc = e.location.toLowerCase().trim();
-        const dayLoc = dayLocation.split('-')[0].split('–')[0].split(',')[0].toLowerCase().trim();
-        return excLoc.includes(dayLoc) || dayLoc.includes(excLoc);
+        // No date and no override -> do not show (location matching removed to avoid duplicates)
+        return false;
       });
       setExcursions(relevant);
       setBookings(book);

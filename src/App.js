@@ -1199,14 +1199,9 @@ const ExcursionDayInline = ({ tour, dayLocation, guestName, dayIdx }) => {
       // Match by tour_day override first, then by calendar date, then by location
       const tourStartDate = tour.start_date ? new Date(tour.start_date) : null;
       const relevant = exc.filter(e => {
-        // Manual day override on excursion
+        // Manual day override on excursion — match ONLY the specified tour day
         if (e.tour_day) {
-          if (!tourStartDate) return false;
-          const excDate = new Date(tourStartDate);
-          excDate.setDate(excDate.getDate() + e.tour_day - 1);
-          const today = new Date();
-          return excDate.toDateString() === today.toDateString() ||
-            (dayIdx !== undefined && e.tour_day === dayIdx + 1);
+          return dayIdx !== undefined && e.tour_day === dayIdx + 1;
         }
         // Match by excursion date string vs tour calendar date
         if (e.date && tourStartDate) {

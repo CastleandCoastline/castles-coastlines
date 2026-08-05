@@ -1606,7 +1606,9 @@ const ContactAndEmergencyPage = ({ tour }) => {
             </a>
           )}
           <a href="https://instagram.com/castleandcoastline" target="_blank" rel="noopener" style={{ display: "flex", alignItems: "center", gap: 16, background: "#1a2332", borderRadius: 16, padding: "16px 20px", textDecoration: "none", border: "1px solid #ffffff10" }}>
-            <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#c9a96e20", border: "1px solid #c9a96e40", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>📷</div>
+            <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#c9a96e20", border: "1px solid #c9a96e40", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#c9a96e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+            </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 12, color: "#607080", marginBottom: 3 }}>Instagram</div>
               <div style={{ fontSize: 15, color: "#f0e6d3" }}>@castleandcoastline</div>

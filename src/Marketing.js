@@ -75,6 +75,9 @@ export default function Marketing() {
     white-space: nowrap;
   }
   .app-link:hover { background: var(--gold-bright); transform: translateY(-1px); }
+  .topbar-right { display: flex; align-items: center; gap: 16px; }
+  .topbar-insta { color: var(--cream); display: flex; align-items: center; transition: color 0.2s; }
+  .topbar-insta:hover { color: var(--gold); }
 
   /* ── Hero ── */
   .hero {
@@ -204,7 +207,20 @@ export default function Marketing() {
   .appstore-badge:hover { transform: translateY(-2px); background: #fff; }
   .appstore-badge span { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.1; font-family: 'Work Sans', sans-serif; font-weight: 600; font-size: 19px; }
   .appstore-badge span small { font-size: 10px; font-weight: 400; letter-spacing: 0.5px; text-transform: uppercase; }
-  .already-tour { margin-top: 22px; font-family: 'Spectral', serif; font-size: 1rem; color: var(--cream-dim); }
+  .app-badges { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .insta-badge {
+    display: inline-flex; align-items: center; gap: 12px;
+    background: transparent; color: var(--cream); border: 1px solid var(--gold);
+    padding: 12px 24px; border-radius: 10px; text-decoration: none;
+    transition: all 0.2s;
+  }
+  .insta-badge:hover { background: var(--gold); color: var(--navy); transform: translateY(-2px); }
+  .insta-badge span { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.1; font-family: 'Work Sans', sans-serif; font-weight: 600; font-size: 19px; }
+  .insta-badge span small { font-size: 10px; font-weight: 400; letter-spacing: 0.5px; text-transform: uppercase; }
+  .insta-line { margin-top: 20px; font-family: 'Spectral', serif; font-size: 1rem; color: var(--cream-dim); }
+  .insta-line a { color: var(--gold); text-decoration: none; border-bottom: 1px solid var(--line); }
+  .insta-line a:hover { color: var(--gold-bright); }
+  .already-tour { margin-top: 18px; font-family: 'Spectral', serif; font-size: 1rem; color: var(--cream-dim); }
   .already-tour a { color: var(--gold); text-decoration: none; border-bottom: 1px solid var(--line); padding-bottom: 1px; transition: color 0.2s, border-color 0.2s; }
   .already-tour a:hover { color: var(--gold-bright); border-color: var(--gold-bright); }
 
@@ -265,7 +281,12 @@ export default function Marketing() {
 
 <div class="topbar" id="topbar">
   <a href="#top" class="brand-mark">Castle <span class="amp">&amp;</span> Coastline</a>
-  <a href="https://apps.apple.com/app/id6775566097" target="_blank" rel="noopener" class="app-link">Download the app →</a>
+  <div class="topbar-right">
+    <a href="https://instagram.com/castleandcoastline" target="_blank" rel="noopener" class="topbar-insta" aria-label="Follow on Instagram">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+    </a>
+    <a href="https://apps.apple.com/app/id6775566097" target="_blank" rel="noopener" class="app-link">Download the app →</a>
+  </div>
 </div>
 
 <!-- ── HERO ── -->
@@ -361,13 +382,18 @@ export default function Marketing() {
       <div class="section-eyebrow">The guest app</div>
       <h2 class="section-title">Travelling with me?<br />Take the tour in your pocket.</h2>
       <p class="app-blurb">Guests on my tours get a free companion app — your day-by-day itinerary, live updates, weather for each stop, a shared photo gallery, and reminders so you never miss a departure. Download it before you set off.</p>
-      <a href="https://apps.apple.com/app/id6775566097" target="_blank" rel="noopener" class="appstore-badge">
-        <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" aria-hidden="true"><path d="M17.05 12.04c-.03-2.82 2.3-4.17 2.4-4.24-1.31-1.92-3.35-2.18-4.07-2.21-1.73-.17-3.38 1.02-4.26 1.02-.88 0-2.23-1-3.67-.97-1.89.03-3.63 1.1-4.6 2.79-1.96 3.4-.5 8.43 1.4 11.19.93 1.35 2.04 2.87 3.49 2.81 1.4-.06 1.93-.9 3.62-.9 1.69 0 2.17.9 3.65.87 1.51-.03 2.46-1.38 3.38-2.74 1.07-1.57 1.51-3.09 1.53-3.17-.03-.01-2.94-1.13-2.97-4.47zM14.28 3.95c.77-.94 1.29-2.24 1.15-3.54-1.11.045-2.46.74-3.26 1.68-.72.83-1.35 2.16-1.18 3.43 1.24.096 2.51-.63 3.29-1.57z"/></svg>
-        <span><small>Download on the</small>App Store</span>
-      </a>
-      <div class="already-tour">
-        Already on a tour? <a href="/app">Open the app here →</a>
+      <div class="app-badges">
+        <a href="https://apps.apple.com/app/id6775566097" target="_blank" rel="noopener" class="appstore-badge">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" aria-hidden="true"><path d="M17.05 12.04c-.03-2.82 2.3-4.17 2.4-4.24-1.31-1.92-3.35-2.18-4.07-2.21-1.73-.17-3.38 1.02-4.26 1.02-.88 0-2.23-1-3.67-.97-1.89.03-3.63 1.1-4.6 2.79-1.96 3.4-.5 8.43 1.4 11.19.93 1.35 2.04 2.87 3.49 2.81 1.4-.06 1.93-.9 3.62-.9 1.69 0 2.17.9 3.65.87 1.51-.03 2.46-1.38 3.38-2.74 1.07-1.57 1.51-3.09 1.53-3.17-.03-.01-2.94-1.13-2.97-4.47zM14.28 3.95c.77-.94 1.29-2.24 1.15-3.54-1.11.045-2.46.74-3.26 1.68-.72.83-1.35 2.16-1.18 3.43 1.24.096 2.51-.63 3.29-1.57z"/></svg>
+          <span><small>Download on the</small>App Store</span>
+        </a>
+        <a href="https://instagram.com/castleandcoastline" target="_blank" rel="noopener" class="insta-badge">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+          <span><small>Follow along on</small>Instagram</span>
+        </a>
       </div>
+      <div class="insta-line">Follow the journey — tour photos, stories, and news of future trips. <a href="https://instagram.com/castleandcoastline" target="_blank" rel="noopener">@castleandcoastline</a></div>
+      <div class="already-tour">Already on a tour? <a href="/app">Open the app here →</a></div>
     </div>
   </div>
 </section>

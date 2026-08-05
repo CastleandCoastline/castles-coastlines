@@ -237,6 +237,8 @@ export default function Marketing() {
   footer { padding: 50px 0 40px; border-top: 1px solid var(--line); text-align: center; }
   .foot-brand { font-family: 'Fraunces', serif; font-size: 1.3rem; color: var(--cream); margin-bottom: 10px; }
   .foot-brand .amp { color: var(--gold); font-style: italic; }
+  .foot-insta { display: inline-flex; align-items: center; gap: 8px; color: var(--gold); text-decoration: none; font-family: 'Work Sans', sans-serif; font-size: 14px; margin-bottom: 14px; transition: color 0.2s; }
+  .foot-insta:hover { color: var(--gold-bright); }
   .foot-note { font-family: 'Work Sans', sans-serif; font-size: 12px; color: var(--cream-dim); letter-spacing: 0.5px; }
   .foot-note a { color: var(--gold); text-decoration: none; }
 
@@ -409,6 +411,10 @@ export default function Marketing() {
 <footer>
   <div class="wrap">
     <div class="foot-brand">Castle <span class="amp">&amp;</span> Coastline</div>
+    <a href="https://instagram.com/castleandcoastline" target="_blank" rel="noopener" class="foot-insta">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+      <span>@castleandcoastline</span>
+    </a>
     <div class="foot-note">Storytelling tours of Britain &amp; Ireland &nbsp;·&nbsp; <a href="https://apps.apple.com/app/id6775566097" target="_blank" rel="noopener">Download the app</a> &nbsp;·&nbsp; <a href="/privacy">Privacy</a></div>
   </div>
 </footer>` }} />

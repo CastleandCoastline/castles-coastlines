@@ -1605,6 +1605,14 @@ const ContactAndEmergencyPage = ({ tour }) => {
               <div style={{ background: "linear-gradient(135deg,#c9a96e,#a07840)", borderRadius: 10, padding: "8px 16px", color: "#1a1a2e", fontWeight: 700, fontSize: 14 }}>Email</div>
             </a>
           )}
+          <a href="https://instagram.com/castleandcoastline" target="_blank" rel="noopener" style={{ display: "flex", alignItems: "center", gap: 16, background: "#1a2332", borderRadius: 16, padding: "16px 20px", textDecoration: "none", border: "1px solid #ffffff10" }}>
+            <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#c9a96e20", border: "1px solid #c9a96e40", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>📷</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 12, color: "#607080", marginBottom: 3 }}>Instagram</div>
+              <div style={{ fontSize: 15, color: "#f0e6d3" }}>@castleandcoastline</div>
+            </div>
+            <div style={{ background: "linear-gradient(135deg,#c9a96e,#a07840)", borderRadius: 10, padding: "8px 16px", color: "#1a1a2e", fontWeight: 700, fontSize: 14 }}>Follow</div>
+          </a>
         </div>
       ) : (
         <div style={{ textAlign: "center", padding: "24px 20px", color: "#405060", border: "1px dashed #ffffff15", borderRadius: 16, marginBottom: 20 }}>

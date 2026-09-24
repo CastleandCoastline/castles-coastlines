@@ -641,10 +641,10 @@ const SeatingEditor = ({ tour, onSave, onClose, saving }) => {
           <div style={{ fontSize: 12, color: "#c9a96e", fontWeight: 600, marginBottom: 10 }}>🔄 Rotate Seating Plan</div>
           <div style={{ fontSize: 12, color: "#506070", marginBottom: 10 }}>Shifts everyone clockwise or anti-clockwise around the coach by the number of seats you choose.</div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
-            <label style={{ fontSize: 11, color: "#8090a0", whiteSpace: "nowrap" }}>Rotate by (rows)</label>
+            <label style={{ fontSize: 11, color: "#8090a0", whiteSpace: "nowrap" }}>Rotate by</label>
             <input type="number" value={rotateAmount} min={1} max={rows * cols - 1} onChange={(e) => setRotateAmount(Math.max(1, parseInt(e.target.value) || 1))}
               style={{ width: 60, background: "#1a2332", border: "1px solid #ffffff20", borderRadius: 8, padding: "6px 8px", color: "#f0e6d3", fontSize: 14, outline: "none", textAlign: "center" }} />
-            <label style={{ fontSize: 11, color: "#8090a0" }}>seats</label>
+            <label style={{ fontSize: 11, color: "#8090a0" }}>rows</label>
           </div>
           <button onClick={() => { if (window.confirm("Clear all names from the seating plan?")) { setSeatData({}); showStatus && showStatus("✓ All seats cleared"); } }}
           style={{ width: "100%", padding: "8px", background: "#ff444415", border: "1px solid #ff444430", borderRadius: 8, color: "#ff6666", fontSize: 12, cursor: "pointer", marginBottom: 10 }}>

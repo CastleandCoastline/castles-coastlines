@@ -396,11 +396,12 @@ const COACH_LAYOUT = [
 
 // Clockwise rotation order (14 positions)
 const ROTATION_ORDER = [
-  [1,2], [5,6], [9,10], [13,14], [17,18], [21,22], [23,24],
+  [1,2], [3,4], [7,8], [11,12], [15,16], [19,20],
   [25,26], [29,30], [33,34], [37,38], [41,42], [45,46],
-  [49,50,51,52,53],
+  [52,53], [49,50,51],
   [47,48], [43,44], [39,40], [35,36], [31,32], [27,28],
-  [19,20], [15,16], [11,12], [7,8], [3,4]
+  [23,24], [21,22],
+  [17,18], [13,14], [9,10], [5,6]
 ];
 
 // ── Coach Seating Plan ────────────────────────────────────────────────────────
@@ -585,23 +586,25 @@ const SeatingEditor = ({ tour, onSave, onClose, saving }) => {
 
   // Build clockwise seat order: left side top→bottom, right side bottom→top
   const rotateSeat = (direction) => {
-    // Flatten ROTATION_ORDER into a single sequence of seat numbers so every
-    // seat (including all 5 back-row seats) has exactly one destination.
-    // This prevents names being dropped when a wide row (back) rotates into
-    // narrower rows.
-    const flatSeats = ROTATION_ORDER.flat();
-    const total = flatSeats.length;
-    const steps = direction === "clockwise" ? (rotateAmount % total) : (total - (rotateAmount % total)) % total;
+    // Rotate by ROWS along ROTATION_ORDER, keeping each group (couple / single /
+    // back sub-row) intact. "rotateAmount" = number of rows to move forward.
+    const order = ROTATION_ORDER;
+    const total = order.length;
+    const steps = direction === "clockwise"
+      ? (rotateAmount % total)
+      : (total - (rotateAmount % total)) % total;
     const newData = { ...seatData };
-    // Clear all seats in the rotation sequence first
-    flatSeats.forEach(num => { newData["seat-" + num] = ""; });
-    // Move each seat's name forward by `steps` positions in the flat sequence
-    flatSeats.forEach((num, i) => {
-      const name = seatData["seat-" + num] || "";
-      if (name) {
-        const destNum = flatSeats[(i + steps) % total];
-        newData["seat-" + destNum] = name;
-      }
+    // Clear every seat in the rotation loop first
+    order.forEach(group => group.forEach(num => { newData["seat-" + num] = ""; }));
+    // Move each group forward by `steps` rows; names keep their position within the group
+    order.forEach((group, i) => {
+      const destGroup = order[(i + steps) % total];
+      group.forEach((num, j) => {
+        const name = seatData["seat-" + num] || "";
+        if (name && j < destGroup.length) {
+          newData["seat-" + destGroup[j]] = name;
+        }
+      });
     });
     setSeatData(newData);
     setRotateConfirm(null);
@@ -638,7 +641,7 @@ const SeatingEditor = ({ tour, onSave, onClose, saving }) => {
           <div style={{ fontSize: 12, color: "#c9a96e", fontWeight: 600, marginBottom: 10 }}>🔄 Rotate Seating Plan</div>
           <div style={{ fontSize: 12, color: "#506070", marginBottom: 10 }}>Shifts everyone clockwise or anti-clockwise around the coach by the number of seats you choose.</div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
-            <label style={{ fontSize: 11, color: "#8090a0", whiteSpace: "nowrap" }}>Rotate by</label>
+            <label style={{ fontSize: 11, color: "#8090a0", whiteSpace: "nowrap" }}>Rotate by (rows)</label>
             <input type="number" value={rotateAmount} min={1} max={rows * cols - 1} onChange={(e) => setRotateAmount(Math.max(1, parseInt(e.target.value) || 1))}
               style={{ width: 60, background: "#1a2332", border: "1px solid #ffffff20", borderRadius: 8, padding: "6px 8px", color: "#f0e6d3", fontSize: 14, outline: "none", textAlign: "center" }} />
             <label style={{ fontSize: 11, color: "#8090a0" }}>seats</label>

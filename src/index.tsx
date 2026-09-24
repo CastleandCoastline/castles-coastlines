@@ -13,7 +13,9 @@ const path = window.location.pathname;
 const isNativeApp = !!(window as any).Capacitor?.isNativePlatform?.();
 
 const Component = isNativeApp
-  ? App
+  ? (path.startsWith('/menu') ? MenuOrder
+     : path.startsWith('/stats') ? StatsPage
+     : App)
   : path.startsWith('/menu') ? MenuOrder
   : path.startsWith('/stats') ? StatsPage
   : path.startsWith('/privacy') ? Privacy

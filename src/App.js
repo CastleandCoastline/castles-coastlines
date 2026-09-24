@@ -92,7 +92,7 @@ async function fetchWeather(lat, lng) {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 async function loadAllTours() {
-  const { data: tours, error } = await supabase.from("tours").select("*").order("created_at");
+  const { data: tours, error } = await supabase.from("tours").select("*").order("start_date", { ascending: false, nullsFirst: false });
   if (error) throw error;
   const { data: days } = await supabase.from("days").select("*").order("day_number");
   const { data: scheduleItems } = await supabase.from("schedule_items").select("*").order("sort_order");
@@ -102,7 +102,7 @@ async function loadAllTours() {
     ...tour,
     seats: (seats || []).filter((s) => s.tour_id === tour.id),
     days: (days || []).filter((d) => d.tour_id === tour.id).map((day) => ({
-      ...day, day: day.day_number,
+      ...day, day: day.day_number, overview: day.overview || "",
       schedule: (scheduleItems || []).filter((s) => s.day_id === day.id).map((s) => ({ time: s.time, label: s.label, note: s.note })),
       attractions: (attractions || []).filter((a) => a.day_id === day.id).map((a) => ({ name: a.name, desc: a.description, lat: parseFloat(a.latitude), lng: parseFloat(a.longitude) })),
     })),
@@ -123,7 +123,7 @@ async function saveTourToDB(tour) {
 
 async function saveDayToDB(tourId, day) {
   const { data: dayRow, error: dayErr } = await supabase.from("days").upsert(
-    { id: day.id || undefined, tour_id: tourId, day_number: day.day, title: day.title, location: day.location },
+    { id: day.id || undefined, tour_id: tourId, day_number: day.day, title: day.title, location: day.location, overview: day.overview || "" },
     { onConflict: "id" }
   ).select().single();
   if (dayErr) throw dayErr;
@@ -168,7 +168,7 @@ async function duplicateTour(sourceTour, newName, newPassword, newStartDate) {
   const { data: srcDays } = await supabase.from("days").select("*").eq("tour_id", sourceTour.id).order("day_number");
   for (const d of (srcDays || [])) {
     const { data: newDay, error: dErr } = await supabase.from("days").insert({
-      tour_id: newTourId, day_number: d.day_number, title: d.title, location: d.location,
+      tour_id: newTourId, day_number: d.day_number, title: d.title, location: d.location, overview: d.overview || "",
     }).select().single();
     if (dErr) throw dErr;
     // schedule items
@@ -385,12 +385,12 @@ const COACH_LAYOUT = [
   { left: [17,18],   right: [19,20] },
   { left: [21,22],   right: null },
   { left: [23,24],   right: null },
-  { left: [25,26],   right: [27,28] },
-  { left: [29,30],   right: [31,32] },
-  { left: [33,34],   right: [35,36] },
-  { left: [37,38],   right: [39,40] },
-  { left: [41,42],   right: [43,44] },
-  { left: [45,46],   right: [47,48] },
+  { left: [27,28],   right: [25,26] },
+  { left: [31,32],   right: [29,30] },
+  { left: [35,36],   right: [33,34] },
+  { left: [39,40],   right: [37,38] },
+  { left: [43,44],   right: [41,42] },
+  { left: [47,48],   right: [45,46] },
   { left: [49,50,51,52,53], right: [], isBack: true },
 ];
 
@@ -585,26 +585,23 @@ const SeatingEditor = ({ tour, onSave, onClose, saving }) => {
 
   // Build clockwise seat order: left side top→bottom, right side bottom→top
   const rotateSeat = (direction) => {
-    // Use ROTATION_ORDER which correctly skips toilet and handles back row
-    const order = ROTATION_ORDER;
-    const total = order.length;
-    const steps = direction === "clockwise" ? rotateAmount : total - (rotateAmount % total);
+    // Flatten ROTATION_ORDER into a single sequence of seat numbers so every
+    // seat (including all 5 back-row seats) has exactly one destination.
+    // This prevents names being dropped when a wide row (back) rotates into
+    // narrower rows.
+    const flatSeats = ROTATION_ORDER.flat();
+    const total = flatSeats.length;
+    const steps = direction === "clockwise" ? (rotateAmount % total) : (total - (rotateAmount % total)) % total;
     const newData = { ...seatData };
-    // Clear all seats first
-    order.forEach(group => {
-      group.forEach(num => { newData["seat-" + num] = ""; });
-    });
-    // Rotate
-    order.forEach((group, i) => {
-      const newIndex = (i + steps) % total;
-      const newGroup = order[newIndex];
-      // Move all names from this group to the new group
-      group.forEach((num, j) => {
-        const name = seatData["seat-" + num] || "";
-        if (name && j < newGroup.length) {
-          newData["seat-" + newGroup[j]] = name;
-        }
-      });
+    // Clear all seats in the rotation sequence first
+    flatSeats.forEach(num => { newData["seat-" + num] = ""; });
+    // Move each seat's name forward by `steps` positions in the flat sequence
+    flatSeats.forEach((num, i) => {
+      const name = seatData["seat-" + num] || "";
+      if (name) {
+        const destNum = flatSeats[(i + steps) % total];
+        newData["seat-" + destNum] = name;
+      }
     });
     setSeatData(newData);
     setRotateConfirm(null);
@@ -900,6 +897,27 @@ const Lightbox = ({ photo, onClose, onDelete, isGuide }) => (
     <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 16, textAlign: "center", maxWidth: 340 }}>
       {photo.caption && <div style={{ color: "#f0e6d3", fontSize: 15, fontWeight: 500, marginBottom: 6 }}>{photo.caption}</div>}
       <div style={{ color: "#607080", fontSize: 12 }}>📷 {photo.uploaded_by} · {new Date(photo.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</div>
+      <button onClick={async () => {
+        try {
+          const resp = await fetch(photo.url);
+          const blob = await resp.blob();
+          const fileName = (photo.caption ? photo.caption.replace(/[^a-z0-9]+/gi, "-").slice(0, 40) : "castle-coastline-photo") + ".jpg";
+          const file = new File([blob], fileName, { type: blob.type || "image/jpeg" });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file] });
+          } else {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url; a.download = fileName;
+            document.body.appendChild(a); a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+          }
+        } catch (err) {
+          if (err && err.name === "AbortError") return; // user cancelled the share sheet
+          try { window.open(photo.url, "_blank"); } catch (e2) {}
+        }
+      }} style={{ marginTop: 14, padding: "10px 22px", background: "linear-gradient(135deg,#c9a96e,#a07840)", border: "none", borderRadius: 10, color: "#1a1a2e", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>⬇ Save Photo</button>
       {isGuide && <button onClick={() => { onDelete(photo); onClose(); }} style={{ marginTop: 14, padding: "8px 20px", background: "#ff444420", border: "1px solid #ff444440", borderRadius: 10, color: "#ff6666", fontSize: 13, cursor: "pointer" }}>Delete Photo</button>}
       {!isGuide && <button onClick={async () => { if (window.confirm("Report this photo as inappropriate? It will be hidden immediately and reviewed.")) { await reportPhoto(photo); onClose(); window.alert("Thank you. This photo has been hidden and will be reviewed."); } }} style={{ marginTop: 14, marginLeft: 8, padding: "8px 20px", background: "#ffffff10", border: "1px solid #ffffff20", borderRadius: 10, color: "#a0b0c0", fontSize: 13, cursor: "pointer" }}>⚐ Report</button>}
     </div>
@@ -1274,6 +1292,11 @@ const ExcursionDayInline = ({ tour, dayLocation, guestName, dayIdx }) => {
                 <div style={{ fontSize: 10, color: "#506070" }}>per person</div>
               </div>
             </div>
+            {exc.image_path && (() => {
+              const excPhotoUrl = supabase.storage.from("excursion-photos").getPublicUrl(exc.image_path).data.publicUrl;
+              return <img src={excPhotoUrl} alt={exc.title} style={{ width: "100%", height: 160, objectFit: "cover", borderRadius: 10, marginBottom: 10, display: "block" }} />;
+            })()}
+            {exc.description && <div style={{ fontSize: 13, color: "#b8ad98", lineHeight: 1.5, marginBottom: 10 }}>{exc.description}</div>}
             {booked ? (
               <div>
                 <div style={{ background: "rgba(106,191,106,0.1)", border: "1px solid rgba(106,191,106,0.3)", borderRadius: 8, padding: "8px 12px", marginBottom: 6 }}>
@@ -2266,6 +2289,7 @@ const GuestView = ({ tour, onLogout, isGuide, startPage, isOffline, guestName })
                 <div style={{ padding: 24 }}>
                   <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, marginBottom: 6 }}>{day.title}</div>
                   <div style={{ fontSize: 20, fontWeight: 700, color: "#c9a96e", marginBottom: 16 }}>📍 {day.location}</div>
+                  {day.overview && <div style={{ background: "#1a2332", border: "1px solid #c9a96e25", borderRadius: 12, padding: "14px 16px", marginBottom: 16, fontSize: 14, lineHeight: 1.6, color: "#d0c4b0", whiteSpace: "pre-wrap" }}>{day.overview}</div>}
                   <ExcursionDayInline tour={tour} dayLocation={day.location} guestName={guestName} dayIdx={activeDay} />
                   {/* Weather for this day's location */}
                   {day.location && <WeatherWidget location={day.location.split('-')[0].split('–')[0].trim()} />}
@@ -2356,6 +2380,8 @@ const EditDayModal = ({ day, onSave, onClose, saving }) => {
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
           <label style={{ fontSize: 11, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase" }}>Day Title</label>{inp(d.title, (v) => setD({ ...d, title: v }), "e.g. Arrival — Edinburgh")}
           <label style={{ fontSize: 11, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase" }}>Location</label>{inp(d.location, (v) => setD({ ...d, location: v }), "e.g. Edinburgh, Scotland")}
+          <label style={{ fontSize: 11, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase" }}>Day Overview (optional)</label>
+          <textarea value={d.overview || ""} onChange={(e) => setD({ ...d, overview: e.target.value })} placeholder="A general overview of the day for guests to read at the top…" rows={4} style={{ background: "#0d1520", border: "1px solid #ffffff20", borderRadius: 8, padding: "9px 12px", color: "#f0e6d3", fontSize: 13, width: "100%", outline: "none", resize: "vertical", fontFamily: "inherit" }} />
         </div>
         <div style={{ fontSize: 11, color: "#c9a96e", letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>Schedule</div>
         {d.schedule.map((s, i) => (<div key={i} style={{ background: "#0d1520", borderRadius: 10, padding: 12, marginBottom: 8, display: "flex", flexDirection: "column", gap: 6 }}><div style={{ display: "flex", gap: 8 }}><div style={{ flex: "0 0 76px" }}>{inp(s.time, (v) => updSched(i, "time", v), "09:00")}</div><div style={{ flex: 1 }}>{inp(s.label, (v) => updSched(i, "label", v), "Activity")}</div><button onClick={() => setD({ ...d, schedule: d.schedule.filter((_, j) => j !== i) })} style={{ background: "#ff444420", border: "none", borderRadius: 6, color: "#ff6666", cursor: "pointer", padding: "0 8px", fontSize: 16 }}>×</button></div>{inp(s.note, (v) => updSched(i, "note", v), "Note (optional)")}</div>))}

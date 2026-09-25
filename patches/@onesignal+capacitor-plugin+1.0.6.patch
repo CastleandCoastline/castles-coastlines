@@ -1,0 +1,26 @@
+diff --git a/node_modules/@onesignal/capacitor-plugin/OneSignalCapacitorPlugin.podspec b/node_modules/@onesignal/capacitor-plugin/OneSignalCapacitorPlugin.podspec
+index c7b2ae9..ac668ab 100644
+--- a/node_modules/@onesignal/capacitor-plugin/OneSignalCapacitorPlugin.podspec
++++ b/node_modules/@onesignal/capacitor-plugin/OneSignalCapacitorPlugin.podspec
+@@ -16,7 +16,7 @@ Pod::Spec.new do |s|
+   ]
+   s.public_header_files = 'ios/Sources/OSCapacitorLaunchOptions/include/*.h'
+ 
+-  s.ios.deployment_target = '14.0'
++  s.ios.deployment_target = '15.0'
+   s.swift_version = '5.9'
+ 
+   s.dependency 'Capacitor'
+diff --git a/node_modules/@onesignal/capacitor-plugin/Package.swift b/node_modules/@onesignal/capacitor-plugin/Package.swift
+index 3bd6043..e8b9a89 100644
+--- a/node_modules/@onesignal/capacitor-plugin/Package.swift
++++ b/node_modules/@onesignal/capacitor-plugin/Package.swift
+@@ -4,7 +4,7 @@ import PackageDescription
+ 
+ let package = Package(
+     name: "OnesignalCapacitorPlugin",
+-    platforms: [.iOS(.v14)],
++    platforms: [.iOS(.v15)],
+     products: [
+         .library(
+             name: "OnesignalCapacitorPlugin",

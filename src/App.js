@@ -3,6 +3,8 @@ import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { inject } from '@vercel/analytics';
 import { injectSpeedInsights } from '@vercel/speed-insights';
+import { Capacitor } from '@capacitor/core';
+import { Media } from '@capacitor-community/media';
 inject();
 injectSpeedInsights();
 
@@ -901,6 +903,17 @@ const Lightbox = ({ photo, onClose, onDelete, isGuide }) => (
       {photo.caption && <div style={{ color: "#f0e6d3", fontSize: 15, fontWeight: 500, marginBottom: 6 }}>{photo.caption}</div>}
       <div style={{ color: "#607080", fontSize: 12 }}>📷 {photo.uploaded_by} · {new Date(photo.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</div>
       <button onClick={async () => {
+        // Native app: save straight to the photo library via the Media plugin.
+        if (Capacitor.isNativePlatform && Capacitor.isNativePlatform()) {
+          try {
+            await Media.savePhoto({ path: photo.url });
+            window.alert("Saved to your photos.");
+          } catch (err) {
+            window.alert("Couldn't save the photo. Please allow photo access in Settings and try again.");
+          }
+          return;
+        }
+        // Web / PWA: download the file the browser way.
         try {
           const resp = await fetch(photo.url);
           const blob = await resp.blob();
@@ -917,7 +930,7 @@ const Lightbox = ({ photo, onClose, onDelete, isGuide }) => (
             setTimeout(() => URL.revokeObjectURL(url), 1000);
           }
         } catch (err) {
-          if (err && err.name === "AbortError") return; // user cancelled the share sheet
+          if (err && err.name === "AbortError") return;
           try { window.open(photo.url, "_blank"); } catch (e2) {}
         }
       }} style={{ marginTop: 14, padding: "10px 22px", background: "linear-gradient(135deg,#c9a96e,#a07840)", border: "none", borderRadius: 10, color: "#1a1a2e", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>⬇ Save Photo</button>

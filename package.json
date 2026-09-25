@@ -3,8 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@capacitor-community/media": "^9.1.0",
     "@capacitor/cli": "^8.3.2",
     "@capacitor/core": "^8.3.2",
+    "@capacitor/filesystem": "^8.1.3",
     "@capacitor/ios": "^8.3.2",
     "@capacitor/local-notifications": "^8.2.0",
     "@capacitor/splash-screen": "^8.0.1",
